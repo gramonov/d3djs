@@ -4,10 +4,44 @@
 		<title>d3d.js</title>
 	</head>
 	<script type="text/javascript" src="jquery-1.7.2.min.js"></script>
+	<script type="text/javascript" src="gl-matrix-min.js"></script>
 	<script type="text/javascript" src="three.min.js"></script>
 	<script type="text/javascript">
+		var WIDTH = 400,
+			HEIGHT = 400;
+
+		var VIEW_ANGLE = 45,
+			ASPECT = WIDTH / HEIGHT,
+			NEAR = 0.1,
+			FAR = 10000;
+
+		var container = $('#container');
+
+		var renderer = new THREE.WebGLRenderer();
+		var camera =
+			new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
+
+		var scene = new THREE.scene();
+
+		scene.add(camera);
+
+		camera.position.z = 300;
+
+		renderer.setSize(WIDTH, HEIGHT);
+
+		container.append(renderer.domElement);
+
+		var sphereMaterial =
+  			new THREE.MeshLambertMaterial(
+  				{
+      				color: 0xCC0000
+    			});
+
+		var sphere = new THREE.Mesh(
+			new THREE.SphereGeometry(10, 16, 16), sphereMaterial);
 
 	</script>
 	<body>
+		<div id="container"></div>
 	</body>
 </html>
