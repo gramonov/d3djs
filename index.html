@@ -9,162 +9,189 @@
 	<script type="text/javascript" src="jquery-1.7.2.min.js"></script>
 	<script type="text/javascript" src="gl-matrix-min.js"></script>
 	<script type="text/javascript" src="three.min.js"></script>
-<script>
 
-    var camera, scene, renderer;
-    var geometry, material, mesh;
+	<script type="x-shader/x-vertex" id="vertexShader">
 
-    var data = [[1, 2, 6, 10, 15, 27, 15], 
-    	[2, 1, 15, 14, 10, 29, 45], 
-    	[6, 10, 15, 22, 45, 69, 21]];
+		void main() {
+			vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+            gl_Position = projectionMatrix * mvPosition;
+        }
 
-    var mouseX = 0, mouseY = 0;
-    var windowHalfX = window.innerWidth / 2;
-	var windowHalfY = window.innerHeight / 2;
+    </script>
+ 
+    <script type="x-shader/x-vertex" id="fragmentShader">
+    
+    	void main(void) {
+            vec2 dSTdx = dFdx(vec2(1.0, 1.0));
+            gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        }
 
-    init();
-    animate();
+    </script>
 
-    document.addEventListener('mousemove', onDocumentMouseMove, false);
+	<script>
 
-    function loadData() {
-   		var plot = new THREE.Object3D();
+	    var camera, scene, renderer;
+	    var geometry, material, mesh;
 
-    	for (var i = 0; i < data[0].length; i++) {
-    		var bar = new THREE.Mesh(
-    			new THREE.CubeGeometry(5, 5, data[2][i]),
-    			new THREE.MeshNormalMaterial()
-    		);
-    		bar.position.x = data[0][i];
-    		bar.position.y = data[1][i];
-    		bar.position.z = data[2][i] / 2;
-    		plot.add(bar);
-    	}
+	    var bar_material;
 
-		group.add(plot);
-    }
+	    var data = [[1, 2, 6, 10, 15, 27, 15], 
+	    	[2, 1, 15, 14, 10, 29, 45], 
+	    	[6, 10, 15, 22, 45, 69, 21]];
 
-    function drawGrid(gridSize) {
-    	var grid_material = new THREE.LineBasicMaterial({color: 0xeeeeee});
-		var gridLines = new THREE.Object3D();	
+	    var mouseX = 0, mouseY = 0;
+	    var windowHalfX = window.innerWidth / 2;
+		var windowHalfY = window.innerHeight / 2;
 
-    	for (var i = 0; i < 100; i += gridSize) {
+	    init();
+	    animate();
 
-    		var line = new THREE.Geometry();
-			line.vertices.push(new THREE.Vector3(i, 0, 0));
-    		line.vertices.push(new THREE.Vector3(i, 100, 0));
-    		gridLines.add(new THREE.Line(line, grid_material));
+	    document.addEventListener('mousemove', onDocumentMouseMove, false);
 
-    		line = new THREE.Geometry();
-			line.vertices.push(new THREE.Vector3(0, i, 0));
-    		line.vertices.push(new THREE.Vector3(100, i, 0));
-    		gridLines.add(new THREE.Line(line, grid_material));
+	    function loadData() {
+	   		var plot = new THREE.Object3D();
+	   		bar_material = new THREE.ShaderMaterial({
+				vertexShader: document.getElementById('vertexShader').textContent,
+    			fragmentShader: document.getElementById('vertexShader').textContent
+			});
 
-    		line = new THREE.Geometry();
-			line.vertices.push(new THREE.Vector3(0, 0, i));
-    		line.vertices.push(new THREE.Vector3(0, 100, i));
-    		gridLines.add(new THREE.Line(line, grid_material));
+	    	for (var i = 0; i < data[0].length; i++) {
+	    		var bar = new THREE.Mesh(
+	    			new THREE.CubeGeometry(5, 5, data[2][i]),
+	    			bar_material
+	    		);
+	    		bar.position.x = data[0][i];
+	    		bar.position.y = data[1][i];
+	    		bar.position.z = data[2][i] / 2;
+	    		plot.add(bar);
+	    	}
 
-    		line = new THREE.Geometry();
-			line.vertices.push(new THREE.Vector3(0, i, 0));
-    		line.vertices.push(new THREE.Vector3(0, i, 100));
-    		gridLines.add(new THREE.Line(line, grid_material));
+			group.add(plot);
+	    }
 
-    		line = new THREE.Geometry();
-			line.vertices.push(new THREE.Vector3(i, 0, 0));
-    		line.vertices.push(new THREE.Vector3(i, 0, 100));
-    		gridLines.add(new THREE.Line(line, grid_material));
+	    function drawGrid(gridSize) {
+	    	var grid_material = new THREE.LineBasicMaterial({color: 0xeeeeee});
+			var gridLines = new THREE.Object3D();	
 
-    		line = new THREE.Geometry();
-			line.vertices.push(new THREE.Vector3(0, 0, i));
-    		line.vertices.push(new THREE.Vector3(100, 0, i));
-    		gridLines.add(new THREE.Line(line, grid_material));
+	    	for (var i = 0; i < 100; i += gridSize) {
 
-    		gridLines.add(new THREE.Line(line, grid_material));
-    	}
+	    		var line = new THREE.Geometry();
+				line.vertices.push(new THREE.Vector3(i, 0, 0));
+	    		line.vertices.push(new THREE.Vector3(i, 100, 0));
+	    		gridLines.add(new THREE.Line(line, grid_material));
 
-    	group.add(gridLines);
-    }
+	    		line = new THREE.Geometry();
+				line.vertices.push(new THREE.Vector3(0, i, 0));
+	    		line.vertices.push(new THREE.Vector3(100, i, 0));
+	    		gridLines.add(new THREE.Line(line, grid_material));
 
-    function init() {
+	    		line = new THREE.Geometry();
+				line.vertices.push(new THREE.Vector3(0, 0, i));
+	    		line.vertices.push(new THREE.Vector3(0, 100, i));
+	    		gridLines.add(new THREE.Line(line, grid_material));
 
-        camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 10000 );
-        camera.position.z = 100;
+	    		line = new THREE.Geometry();
+				line.vertices.push(new THREE.Vector3(0, i, 0));
+	    		line.vertices.push(new THREE.Vector3(0, i, 100));
+	    		gridLines.add(new THREE.Line(line, grid_material));
 
-        scene = new THREE.Scene();
+	    		line = new THREE.Geometry();
+				line.vertices.push(new THREE.Vector3(i, 0, 0));
+	    		line.vertices.push(new THREE.Vector3(i, 0, 100));
+	    		gridLines.add(new THREE.Line(line, grid_material));
 
-        group = new THREE.Object3D();
-        
-        var x_axis = new THREE.Geometry();
-        x_axis.vertices.push(new THREE.Vector3(0, 0, 0));
-        x_axis.vertices.push(new THREE.Vector3(100, 0, 0));
+	    		line = new THREE.Geometry();
+				line.vertices.push(new THREE.Vector3(0, 0, i));
+	    		line.vertices.push(new THREE.Vector3(100, 0, i));
+	    		gridLines.add(new THREE.Line(line, grid_material));
 
-        var y_axis = new THREE.Geometry();
-        y_axis.vertices.push(new THREE.Vector3(0, 0, 0));
-        y_axis.vertices.push(new THREE.Vector3(0, 100, 0));
+	    		gridLines.add(new THREE.Line(line, grid_material));
+	    	}
 
-		var z_axis = new THREE.Geometry();
-        z_axis.vertices.push(new THREE.Vector3(0, 0, 0));
-        z_axis.vertices.push(new THREE.Vector3(0, 0, 100));
+	    	group.add(gridLines);
+	    }
 
-        var blue_line_material = new THREE.LineBasicMaterial({ color: 0x0000dd});
-        var red_line_material = new THREE.LineBasicMaterial({ color: 0xdd0000});
-		var green_line_material = new THREE.LineBasicMaterial({ color: 0x00dd00});
+	    function init() {
 
-        group.add(new THREE.Line(x_axis, red_line_material));
-        group.add(new THREE.Line(y_axis, green_line_material));
-        group.add(new THREE.Line(z_axis, blue_line_material));
+	        camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 10000 );
+	        camera.position.z = 100;
 
-        group.rotation.x = -90 * Math.PI / 180;
-        group.rotation.y = 0 * Math.PI / 180;
-        group.rotation.z = 180 * Math.PI / 180;
+	        scene = new THREE.Scene();
 
-        drawGrid(5);
-        loadData();
-        scene.add(group);
+	        group = new THREE.Object3D();
+	        
+	        var x_axis = new THREE.Geometry();
+	        x_axis.vertices.push(new THREE.Vector3(0, 0, 0));
+	        x_axis.vertices.push(new THREE.Vector3(100, 0, 0));
 
-        renderer = new THREE.CanvasRenderer();
-        renderer.setSize( window.innerWidth, window.innerHeight );
+	        var y_axis = new THREE.Geometry();
+	        y_axis.vertices.push(new THREE.Vector3(0, 0, 0));
+	        y_axis.vertices.push(new THREE.Vector3(0, 100, 0));
 
-        document.body.appendChild( renderer.domElement ); 
-        
-        render();
-    }
+			var z_axis = new THREE.Geometry();
+	        z_axis.vertices.push(new THREE.Vector3(0, 0, 0));
+	        z_axis.vertices.push(new THREE.Vector3(0, 0, 100));
 
-    function render() {
+	        var blue_line_material = new THREE.LineBasicMaterial({ color: 0x0000dd});
+	        var red_line_material = new THREE.LineBasicMaterial({ color: 0xdd0000});
+			var green_line_material = new THREE.LineBasicMaterial({ color: 0x00dd00});
 
-		camera.position.x += ( mouseX - camera.position.x ) * 1.0;
-		camera.position.y += ( - mouseY - camera.position.y ) * 1.0;
-		camera.lookAt( scene.position );
+	        group.add(new THREE.Line(x_axis, red_line_material));
+	        group.add(new THREE.Line(y_axis, green_line_material));
+	        group.add(new THREE.Line(z_axis, blue_line_material));
 
-		renderer.render( scene, camera );
+	        group.rotation.x = -90 * Math.PI / 180;
+	        group.rotation.y = 0 * Math.PI / 180;
+	        group.rotation.z = 180 * Math.PI / 180;
 
-	}
+	        drawGrid(5);
+	        loadData();
+	        scene.add(group);
 
-	function animate() {
+	        renderer = new THREE.WebGLRenderer();
+	        renderer.setSize( window.innerWidth, window.innerHeight );
 
-		requestAnimationFrame( animate );
+	        document.body.appendChild( renderer.domElement ); 
 
-		render();
-	}
+	        renderer.context.getExtension('OES_standard_derivatives');
+	        
+	        render();
+	    }
 
-	function onDocumentMouseMove(event) {
+	    function render() {
 
-		mouseX = ( event.clientX - windowHalfX ) * 10;
-		mouseY = ( event.clientY - windowHalfY ) * 10;
+			camera.position.x += ( mouseX - camera.position.x ) * 1.0;
+			camera.position.y += ( - mouseY - camera.position.y ) * 1.0;
+			camera.lookAt( scene.position );
 
-	}
+			renderer.render( scene, camera );
 
-	function onWindowResize() {
+		}
 
-		windowHalfX = window.innerWidth / 2;
-		windowHalfY = window.innerHeight / 2;
+		function animate() {
 
-		camera.aspect = window.innerWidth / window.innerHeight;
-		camera.updateProjectionMatrix();
+			requestAnimationFrame( animate );
 
-		renderer.setSize( window.innerWidth, window.innerHeight );
+			render();
+		}
 
-	}
-</script>
+		function onDocumentMouseMove(event) {
+
+			mouseX = ( event.clientX - windowHalfX ) * 10;
+			mouseY = ( event.clientY - windowHalfY ) * 10;
+
+		}
+
+		function onWindowResize() {
+
+			windowHalfX = window.innerWidth / 2;
+			windowHalfY = window.innerHeight / 2;
+
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+
+			renderer.setSize( window.innerWidth, window.innerHeight );
+
+		}
+	</script>
 </html>
