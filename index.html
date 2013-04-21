@@ -12,19 +12,38 @@
 
 	<script type="x-shader/x-vertex" id="vertexShader">
 
-		void main() {
-			vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
-            gl_Position = projectionMatrix * mvPosition;
-        }
+		varying vec3 vNormal;
+
+		void main()
+		{
+			vNormal = normal;
+			gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+		}
 
     </script>
  
     <script type="x-shader/x-vertex" id="fragmentShader">
-    
-    	void main(void) {
-            vec2 dSTdx = dFdx(vec2(1.0, 1.0));
-            gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-        }
+
+        uniform vec3 lightDir;
+		varying vec3 vNormal;
+
+		void main()
+		{
+			float intensity;
+			vec4 color;
+			intensity = dot(normalize(lightDir), normalize(vNormal));
+
+			if (intensity > 0.95)
+				color = vec4(1.0,0.5,0.5,1.0);
+			else if (intensity > 0.5)
+				color = vec4(0.6,0.3,0.3,1.0);
+			else if (intensity > 0.25)
+				color = vec4(0.4,0.2,0.2,1.0);
+			else
+				color = vec4(0.2,0.1,0.1,1.0);
+			gl_FragColor = color;
+
+		}
 
     </script>
 
@@ -49,15 +68,19 @@
 	    document.addEventListener('mousemove', onDocumentMouseMove, false);
 
 	    function loadData() {
+	    	var uniforms = {
+	    		"lightDir" : {type: 'v3', value: new THREE.Vector3(1, -1, 1)}
+	    	};
 	   		var plot = new THREE.Object3D();
 	   		bar_material = new THREE.ShaderMaterial({
+	   			uniforms: uniforms,
 				vertexShader: document.getElementById('vertexShader').textContent,
-    			fragmentShader: document.getElementById('vertexShader').textContent
+    			fragmentShader: document.getElementById('fragmentShader').textContent
 			});
 
 	    	for (var i = 0; i < data[0].length; i++) {
 	    		var bar = new THREE.Mesh(
-	    			new THREE.CubeGeometry(5, 5, data[2][i]),
+	    			new THREE.CubeGeometry(2.5, 2.5, data[2][i]),
 	    			bar_material
 	    		);
 	    		bar.position.x = data[0][i];
