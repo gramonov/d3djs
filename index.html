@@ -9,6 +9,7 @@
 	<script type="text/javascript" src="jquery-1.7.2.min.js"></script>
 	<script type="text/javascript" src="gl-matrix-min.js"></script>
 	<script type="text/javascript" src="three.min.js"></script>
+	<script type="text/javascript" src="TrackballControls.js"></script>
 
 	<script type="x-shader/x-vertex" id="vertexShader">
 
@@ -58,14 +59,10 @@
 	    	[2, 1, 15, 14, 10, 29, 45], 
 	    	[6, 10, 15, 22, 45, 69, 21]];
 
-	    var mouseX = 0, mouseY = 0;
-	    var windowHalfX = window.innerWidth / 2;
-		var windowHalfY = window.innerHeight / 2;
-
 	    init();
 	    animate();
 
-	    document.addEventListener('mousemove', onDocumentMouseMove, false);
+	    //document.addEventListener('mousemove', onDocumentMouseMove, false);
 
 	    function loadData() {
 	    	var uniforms = {
@@ -138,8 +135,26 @@
 
 	        camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 10000 );
 	        camera.position.z = 100;
+	        camera.position.x = -50;
+	        camera.position.y = 50;
 
 	        scene = new THREE.Scene();
+
+	        controls = new THREE.TrackballControls( camera );
+
+			controls.rotateSpeed = 1;
+		    controls.zoomSpeed = .5;
+		    controls.panSpeed = 1;
+
+		    controls.noZoom = false;
+		    controls.noPan = false;
+
+		    controls.staticMoving = false;
+		    controls.dynamicDampingFactor = 0.3;
+
+			controls.keys = [ 65, 83, 68 ];
+
+			controls.addEventListener( 'change', render );
 
 	        group = new THREE.Object3D();
 	        
@@ -176,15 +191,12 @@
 
 	        document.body.appendChild( renderer.domElement ); 
 
-	        renderer.context.getExtension('OES_standard_derivatives');
+	        window.addEventListener( 'resize', onWindowResize, false );
 	        
 	        render();
 	    }
 
 	    function render() {
-
-			camera.position.x += ( mouseX - camera.position.x ) * 1.0;
-			camera.position.y += ( - mouseY - camera.position.y ) * 1.0;
 			camera.lookAt( scene.position );
 
 			renderer.render( scene, camera );
@@ -192,28 +204,21 @@
 		}
 
 		function animate() {
-
 			requestAnimationFrame( animate );
+			controls.update();
 
 			render();
 		}
 
-		function onDocumentMouseMove(event) {
-
-			mouseX = ( event.clientX - windowHalfX ) * 10;
-			mouseY = ( event.clientY - windowHalfY ) * 10;
-
-		}
-
 		function onWindowResize() {
-
-			windowHalfX = window.innerWidth / 2;
-			windowHalfY = window.innerHeight / 2;
-
 			camera.aspect = window.innerWidth / window.innerHeight;
 			camera.updateProjectionMatrix();
 
 			renderer.setSize( window.innerWidth, window.innerHeight );
+
+			controls.handleResize();
+
+			render();
 
 		}
 	</script>
