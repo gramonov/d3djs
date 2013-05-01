@@ -3,18 +3,20 @@ var camera, scene, renderer;
 var plot;
 var projector, raycaster, renderer;
 var mouse = new THREE.Vector2(), INTERSECTED;
+var tooltip_sprite;
+var tooltip_canvas, tooltip_context, tooltip_texture;
 
 var data = { 
     series: [
         "Canada",
         "Sweden",
-        "Mexico"
+        "Mexico",
     ],
     columns: [
         "2010",
         "2011",
         "2012",
-        "2013"
+        "2013",
     ],
     values: [
         [ 15, 20, 25, 30 ],
@@ -33,7 +35,7 @@ var COLORS = [
 ];
 
 var BASE_WIDTH = 2.5;
-var BASE_MULTIPLIER = 2.0;
+var BASE_MULTIPLIER = 3.7;
 
 var AXES = {
     X: {
@@ -75,7 +77,16 @@ function loadData() {
         textLabelMesh.rotation.x = 0 * Math.PI / 180;
         textLabelMesh.rotation.y = 0 * Math.PI / 180;
         textLabelMesh.rotation.z = 90 * Math.PI / 180;
+
         group.add(textLabelMesh);
+
+        var line = new THREE.Geometry();
+        
+        line.vertices.push( new THREE.Vector3( SPACING.series * (i + 1) + SPACING.series / 2, -35, 0 ) );
+        line.vertices.push( new THREE.Vector3( SPACING.series * (i + 1) + SPACING.series / 2, 75, 0 ) );
+        var grid_material = new THREE.LineBasicMaterial( { color: 0xeeeeee, transparent: true, opacity: 0.2 } );
+        
+        group.add(new THREE.Line(line, grid_material));
     }
 
     for (var i = 0; i < data.columns.length; i++) {
@@ -90,8 +101,16 @@ function loadData() {
         textLabelMesh.rotation.x = 0 * Math.PI / 180;
         textLabelMesh.rotation.y = 0 * Math.PI / 180;
         textLabelMesh.rotation.z = 180 * Math.PI / 180;
-
+        
         group.add(textLabelMesh);
+    
+        var line = new THREE.Geometry();
+        
+        line.vertices.push( new THREE.Vector3( -35, SPACING.columns * (i + 1) + SPACING.columns / 2, 0 ) );
+        line.vertices.push( new THREE.Vector3( 75, SPACING.columns * (i + 1) + SPACING.columns / 2, 0 ) );
+        var grid_material = new THREE.LineBasicMaterial( { color: 0xeeeeee, transparent: true, opacity: 0.2 } );
+
+        group.add(new THREE.Line(line, grid_material));
     }
 
     var max_data_value = Math.max.apply(Math, [].concat.apply([], data.values));
@@ -99,7 +118,7 @@ function loadData() {
     for (var i = 0; i < data.values.length; i++) {        
         for (var j = 0; j < data.values[i].length; j++) {
             var bar_solid_material = new THREE.MeshBasicMaterial( { color: COLORS[i], shading: THREE.FlatShading, transparent: true, opacity: 0.8 } );
-            var bar_foundation_material = new THREE.MeshBasicMaterial( { color: COLORS[i], shading: THREE.FlatShading, transparent: true, opacity: 0.8, wireframe: true } );
+            var bar_foundation_material = new THREE.MeshBasicMaterial( { color: COLORS[i], shading: THREE.FlatShading, transparent: true, opacity: 0.5, wireframe: false } );
             var bar_wireframe_material = new THREE.MeshBasicMaterial( { color: 0xffffff, shading: THREE.FlatShading, wireframe: true, transparent: true } );
 
             var val = data.values[i][j] * AXES.Z.len / max_data_value;
@@ -109,13 +128,15 @@ function loadData() {
                 bar_solid_material
             );
 
+            bar_solid.datum = { series: i, column: j };
+
             var bar_wireframe = new THREE.Mesh (
                 new THREE.CubeGeometry( BASE_WIDTH, BASE_WIDTH, val ), 
                 bar_wireframe_material
             );
 
             var bar_foundation = new THREE.Mesh (
-                new THREE.CubeGeometry( BASE_WIDTH * BASE_MULTIPLIER, BASE_WIDTH * BASE_MULTIPLIER, 0.0 ),
+                new THREE.CubeGeometry( BASE_WIDTH * BASE_MULTIPLIER, BASE_WIDTH * BASE_MULTIPLIER, -0.5 ),
                 bar_foundation_material
             );
             
@@ -234,7 +255,7 @@ function init() {
     //group.rotation.y = 0 * Math.PI / 180;
     //group.rotation.z = 180 * Math.PI / 180;
 
-    drawGrid(5);
+    drawGrid(100);
     loadData();
     scene.add(group);
 
@@ -251,6 +272,22 @@ function init() {
     
     document.addEventListener( 'mousemove', onDocumentMouseMove, false );
     console.log(plot);
+
+    tooltip_canvas = document.createElement('canvas');
+    tooltip_context = tooltip_canvas.getContext('2d');
+    tooltip_context.font = "Bold 13px Arial";
+    tooltip_context.fillStyle = "rgba(0,0,0,0.95)";
+    
+    // canvas contents will be used for a texture
+    tooltip_texture = new THREE.Texture(tooltip_canvas) 
+    tooltip_texture.needsUpdate = true;
+    
+    var spriteMaterial = new THREE.SpriteMaterial( { map: tooltip_texture, useScreenCoordinates: true, alignment: THREE.SpriteAlignment.topLeft } );
+    
+    tooltip_sprite = new THREE.Sprite( spriteMaterial );
+    tooltip_sprite.scale.set( 300, 150, 1.0 );
+    tooltip_sprite.position.set( 50, 50, 0 );
+    scene.add( tooltip_sprite );   
 }
 
 function render() {
@@ -284,7 +321,22 @@ function update() {
             INTERSECTED = intersects[0].object;
             INTERSECTED.currentHex = INTERSECTED.material.color.getHex();
             INTERSECTED.material.color.setHex( 0xeeeeee );
-            console.log(INTERSECTED);
+
+            tooltip_context.clearRect( 0, 0, 640, 480 );
+            var message = "Series: " + data.series[INTERSECTED.datum.series] + " " +
+                "Column: " + data.columns[INTERSECTED.datum.column] + " " +
+                "Value : " + data.values[INTERSECTED.datum.series][INTERSECTED.datum.column];
+            console.log(message);
+            var metrics = tooltip_context.measureText( message );
+            console.log(metrics);
+            var width = metrics.width;
+            tooltip_context.fillStyle = "rgba(255,255,255,0.95)"; // black border
+            tooltip_context.fillRect( 0, 0, width + 8, 20 + 8);
+            tooltip_context.fillStyle = "rgba(0,0,0,0.95)"; // white filler
+            tooltip_context.fillRect( 2, 2, width + 4, 20 + 4 );
+            tooltip_context.fillStyle = "rgba(255,255,255,1)"; // text color
+            tooltip_context.fillText( message, 4, 20 );
+            tooltip_texture.needsUpdate = true;
         }
 
     } else {
@@ -293,6 +345,8 @@ function update() {
 
         INTERSECTED = null;
 
+        tooltip_context.clearRect( 0, 0, 300, 300 );
+        tooltip_texture.needsUpdate = true;
     }
 }
 
@@ -309,6 +363,8 @@ function onWindowResize() {
 
 function onDocumentMouseMove( event ) {
     event.preventDefault();
+
+    tooltip_sprite.position.set( event.clientX, event.clientY, 0 );
 
     mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
     mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
