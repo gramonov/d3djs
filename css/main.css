@@ -4,7 +4,7 @@ html, body {
   height: 100%;
   width: 100%;
   background-color: black;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Orator Std;
 }
 
 .site-wrapper {
@@ -12,21 +12,54 @@ html, body {
   height: 100%;
 }
 
+.header {
+  background: rgba(25, 25, 25, 0.5);
+  height: 100px;
+  color: white; 
+}
+
+.header h2 {
+  text-shadow: 0 0 10px white;
+  text-align: center;
+}
+
 .content-wrapper {
-  margin-left: auto;
+  background: rgba(25, 25, 25, 0.5);
+  border-radius: 10px;
+  box-shadow: 0 0 5px silver;
+  margin: 0 auto;
   width: 960px;
 }
 
 .menu {
+  margin: 150px auto;
   height: 400px;
+}
+
+.menu td {
+  padding: 25px;
+  font-size: 21px;
 }
 
 .menu-link {
   text-transform: uppercase;
   text-decoration: none;
-  color: #dddddd;
+  color: #aaaaaa;
 }
 
 .menu-link:hover {
-  color: #eeeeee;
+  color: #ffffff;
+}
+
+.menu-icon {
+  background-color: #bbbbbb;
+  vertical-align: middle;
+  width: 64px;
+  height: 64px;
+  margin-right: 10px;
+}
+
+.menu-icon:hover {
+  background-color: #eeeeee;
+  vertical-align: middle;
 }
