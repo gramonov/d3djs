@@ -38,7 +38,7 @@ html, body {
 
 .menu td {
   padding: 25px;
-  font-size: 21px;
+  font-size: 20px;
 }
 
 .menu-link {
@@ -54,8 +54,8 @@ html, body {
 .menu-icon {
   background-color: #bbbbbb;
   vertical-align: middle;
-  width: 64px;
-  height: 64px;
+  width: 48px;
+  height: 48px;
   margin-right: 10px;
 }
 

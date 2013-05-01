@@ -6,22 +6,33 @@ var mouse = new THREE.Vector2(), INTERSECTED;
 var tooltip_sprite;
 var tooltip_canvas, tooltip_context, tooltip_texture;
 
-var data = [
-    [],
-    [],
-    []
+var data = { 
+    series: [
+        "Canada",
+        "Sweden",
+        "Mexico",
+    ],
+    columns: [
+        "2010",
+        "2011",
+        "2012",
+        "2013",
+    ],
+    values: [
+        [ 15, 20, 25, 30 ],
+        [ 20, 32, 68, 82 ],
+        [ 50, 15, 55, 72 ]
+    ]
+};
+
+var COLORS = [
+    0xff0000,
+    0x00ff00,
+    0x0000ff,
+    0xffff00,
+    0xff00ff,
+    0x00ffff
 ];
-
-var SIZE = 15;
-var MAX = 75;
-
-for (var i = 0; i < 3; i++) {
-    for (var j = 0; j < SIZE; j++) {
-        data[0].push( [ Math.random() * MAX, Math.random() * MAX, Math.random() * MAX ] );
-        data[1].push( [ Math.random() * MAX, Math.random() * MAX, Math.random() * MAX ] );
-        data[2].push( [ Math.random() * MAX, Math.random() * MAX, Math.random() * MAX ] );
-    }
-}
 
 var BASE_WIDTH = 3.0;
 var BASE_MULTIPLIER = 2.5;
@@ -38,14 +49,10 @@ var AXES = {
     }
 };
 
-var COLORS = [
-    0xff0000,
-    0x00ff00,
-    0x0000ff,
-    0xffff00,
-    0xff00ff,
-    0x00ffff
-];
+var SPACING = {
+    series: AXES.X.len / data.series.length,
+    columns: AXES.Y.len / data.columns.length
+};
 
 var OFFSET = {
     X: 30,
@@ -58,42 +65,108 @@ animate();
 function loadData() {
     plot = new THREE.Object3D();
 
-    var max_data_value = Math.max.apply(Math, [].concat.apply([], data.values));
-
-    for (var i = 0; i < data.length; i++) {
-        var material = new THREE.MeshPhongMaterial( { color: COLORS[i + 2], shading: THREE.FlatShading, emissive: 0x555555, ambient: 0x333333, transparent: true, opacity: 0.9 } );
+    for (var i = 0; i < data.series.length; i++) {
+        var material = new THREE.MeshBasicMaterial( { color: COLORS[i], shading: THREE.FlatShading, transparent: true, opacity: 0.9 } );
         var text = new THREE.TextGeometry(
-            "Series " + i, 
-            { size: 16, height: 0.1, curveSegments: 6, font: "helvetiker", weight: "normal", style: "normal" } 
+            data.series[i], 
+            { size: 5, height: 0.1, curveSegments: 6, font: "helvetiker", weight: "normal", style: "normal" } 
         );
         var textLabelMesh = new THREE.Mesh( text, material );
-        textLabelMesh.position.y += 20 + i * 30;
-        textLabelMesh.position.x -= 60;
-        textLabelMesh.rotation.z = Math.PI;
-        scene.add(textLabelMesh);
+        textLabelMesh.position.x += SPACING.series * (i + 1);
+        textLabelMesh.position.y -= OFFSET.X;
+        textLabelMesh.rotation.x = 0 * Math.PI / 180;
+        textLabelMesh.rotation.y = 0 * Math.PI / 180;
+        textLabelMesh.rotation.z = 90 * Math.PI / 180;
+
+        group.add(textLabelMesh);
+
+        var line = new THREE.Geometry();
+        
+        line.vertices.push( new THREE.Vector3( SPACING.series * (i + 1) + SPACING.series / 2, -35, 0 ) );
+        line.vertices.push( new THREE.Vector3( SPACING.series * (i + 1) + SPACING.series / 2, 75, 0 ) );
+        var grid_material = new THREE.LineBasicMaterial( { color: 0xeeeeee, transparent: true, opacity: 0.2 } );
+        
+        group.add(new THREE.Line(line, grid_material));
     }
 
-    for (var i = 0; i < data.length; i++) {        
-        for (var j = 0; j < data[i].length; j++) {
-            var mat = [
-                new THREE.MeshPhongMaterial( { color: COLORS[i + 2], transparent: true, opacity: 0.85 } ),
-                new THREE.MeshPhongMaterial( { color: COLORS[i + 2], transparent: true, opacity: 0.85 } ),
-                new THREE.MeshPhongMaterial( { color: COLORS[i + 2], transparent: true, opacity: 0.85 } )
-            ];
+    for (var i = 0; i < data.columns.length; i++) {
+        var material = new THREE.MeshBasicMaterial( { color: 0xeeeeee, shading: THREE.FlatShading, transparent: true, opacity: 0.9 } );
+        var text = new THREE.TextGeometry(
+            data.columns[i], 
+            { size: 5, height: 0.1, curveSegments: 6, font: "helvetiker", weight: "normal", style: "normal" } 
+        );
+        var textLabelMesh = new THREE.Mesh( text, material );
+        textLabelMesh.position.y += SPACING.columns * (i + 1);
+        textLabelMesh.position.x -= OFFSET.Y;
+        textLabelMesh.rotation.x = 0 * Math.PI / 180;
+        textLabelMesh.rotation.y = 0 * Math.PI / 180;
+        textLabelMesh.rotation.z = 180 * Math.PI / 180;
+        
+        group.add(textLabelMesh);
+    
+        var line = new THREE.Geometry();
+        
+        line.vertices.push( new THREE.Vector3( -35, SPACING.columns * (i + 1) + SPACING.columns / 2, 0 ) );
+        line.vertices.push( new THREE.Vector3( 75, SPACING.columns * (i + 1) + SPACING.columns / 2, 0 ) );
+        var grid_material = new THREE.LineBasicMaterial( { color: 0xeeeeee, transparent: true, opacity: 0.2 } );
 
-            var dot = new THREE.Mesh ( 
-                new THREE.SphereGeometry( 1, 32, 32 ), 
-                mat[i]
+        group.add(new THREE.Line(line, grid_material));
+    }
+
+    var max_data_value = Math.max.apply(Math, [].concat.apply([], data.values));
+
+    var extrusionSettings = {
+        size: 1, height: 1, curveSegments: 6,
+        bevelThickness: 0.5, bevelSize: 2, bevelEnabled: false,
+        material: 0, extrudeMaterial: 1
+    };
+
+    for (var i = 0; i < data.values.length; i++) {
+        var bar_solid_material = new THREE.MeshPhongMaterial( { color: COLORS[i], transparent: true, opacity: 0.85 } );
+        var bar_foundation_material = new THREE.MeshBasicMaterial( { color: COLORS[i], shading: THREE.FlatShading, transparent: true, opacity: 0.5, wireframe: false } );
+        var bar_wireframe_material = new THREE.MeshBasicMaterial( { color: 0xffffff, shading: THREE.FlatShading, wireframe: true, transparent: true } );
+
+        var areaPoints = [ new THREE.Vector2( 0, 0), new THREE.Vector2( 0, 25), new THREE.Vector2( 23, 1), new THREE.Vector2( 27, 0)  ];
+
+        for (var j = 0; j < data.values[i].length; j++) {
+            var val = data.values[i][j] * AXES.Z.len / max_data_value;
+
+            var bar_solid = new THREE.Mesh ( 
+                new THREE.CubeGeometry( BASE_WIDTH, BASE_WIDTH, val ), 
+                bar_solid_material
             );
 
-            dot.datum = { x: data[i][j][0], y: data[i][j][1], z: data[i][j][2] };
+            bar_solid.datum = { series: i, column: j };
 
-            dot.position.x = data[i][j][0];
-            dot.position.y = data[i][j][1];
-            dot.position.z = data[i][j][2];
+            var bar_wireframe = new THREE.Mesh (
+                new THREE.CubeGeometry( BASE_WIDTH, BASE_WIDTH, val ), 
+                bar_wireframe_material
+            );
 
-            plot.add(dot);
+            var bar_foundation = new THREE.Mesh (
+                new THREE.CubeGeometry( BASE_WIDTH * BASE_MULTIPLIER, BASE_WIDTH * BASE_MULTIPLIER, -0.5 ),
+                bar_foundation_material
+            );
+            
+            //areaPoints.push( new THREE.Vector2( SPACING.series * (j + 1), val ) );
+            //areaPoints.push( new THREE.Vector2( SPACING.series * (j + 1) + 1, val ) );
+
+            bar_wireframe.position.x = SPACING.series * (i + 1);
+            bar_wireframe.position.y = SPACING.columns * (j + 1);
+            bar_wireframe.position.z = val / 2;
+
+            bar_foundation.position.x = SPACING.series * (i + 1);
+            bar_foundation.position.y = SPACING.columns * (j + 1);
+            
+            //scene.add(bar_wireframe);
+            scene.add(bar_foundation);
         }
+
+        //areaPoints.push( new THREE.Vector2( SPACING.series * (data.values[i].length + 1), val ) );
+        var areaShape = new THREE.Shape( areaPoints );
+        var areaGeometry = new THREE.ExtrudeGeometry( areaShape, extrusionSettings );
+        var areaPlot = new THREE.Mesh( areaGeometry, bar_solid_material );
+        plot.add(areaPlot);
     }
 
     scene.add(plot);
@@ -194,7 +267,7 @@ function init() {
     //group.rotation.y = 0 * Math.PI / 180;
     //group.rotation.z = 180 * Math.PI / 180;
 
-    drawGrid(5);
+    drawGrid(100);
     loadData();
     scene.add(group);
 
@@ -280,7 +353,9 @@ function update() {
             INTERSECTED.material.emissive.setHex( 0x666666 );
 
             tooltip_context.clearRect( 0, 0, 640, 480 );
-            var message = "(" + INTERSECTED.datum.x.toFixed(3) + ", " + INTERSECTED.datum.y.toFixed(3) + ", " + INTERSECTED.datum.z.toFixed(3) + " )";
+            var message = "Series: " + data.series[INTERSECTED.datum.series] + " " +
+                "Column: " + data.columns[INTERSECTED.datum.column] + " " +
+                "Value : " + data.values[INTERSECTED.datum.series][INTERSECTED.datum.column];
             console.log(message);
             var metrics = tooltip_context.measureText( message );
             console.log(metrics);

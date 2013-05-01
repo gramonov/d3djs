@@ -17,9 +17,9 @@ var MAX = 75;
 
 for (var i = 0; i < 3; i++) {
     for (var j = 0; j < SIZE; j++) {
-        data[0].push( [ Math.random() * MAX, Math.random() * MAX, Math.random() * MAX ] );
-        data[1].push( [ Math.random() * MAX, Math.random() * MAX, Math.random() * MAX ] );
-        data[2].push( [ Math.random() * MAX, Math.random() * MAX, Math.random() * MAX ] );
+        data[0].push( [ Math.random() * 25, Math.random() * 25, Math.random() * MAX ] );
+        data[1].push( [ Math.random() * 25 + 25, Math.random() * MAX, Math.random() * 25 + 25 ] );
+        data[2].push( [ Math.random() * MAX, Math.random() * 25 + 25, Math.random() * MAX ] );
     }
 }
 
@@ -52,8 +52,40 @@ var OFFSET = {
     Y: 10
 };
 
+var K = 5;
+
 init();
 animate();
+
+function dist(dot1, train) {
+    return Math.sqrt(
+        (dot1.x - train[0])*(dot1.x - train[0]) +
+        (dot1.y - train[1])*(dot1.y - train[1]) +
+        (dot1.z - train[2])*(dot1.z - train[2])
+    );
+}
+
+function classify(dot) {
+    distances = [];
+    for (var i = 0; i < SIZE; i++) {
+        distances.push( { d: dist( dot, data[0][i] ), cl: 0 } );
+        distances.push( { d: dist( dot, data[1][i] ), cl: 1 } );
+        distances.push( { d: dist( dot, data[2][i] ), cl: 2 } );
+    }
+
+    distances.sort(function(a,b) {
+        k1 = a.d; k2 = b.d;
+        return (k1 > k2) ? 1 : ( (k2 > k1) ? -1 : 0 );
+    });
+
+    counts = [ 0, 0, 0 ];
+
+    for (var i = 0; i < K; i++) {
+        counts[ distances[i].cl ] += 1;
+    }
+
+    return counts.indexOf(Math.max.apply(Math, counts));
+}
 
 function loadData() {
     plot = new THREE.Object3D();
@@ -93,6 +125,21 @@ function loadData() {
             dot.position.z = data[i][j][2];
 
             plot.add(dot);
+        }
+    }
+
+    for (var i = 0; i < 75; i+=4) {
+        for (var j = 0; j < 75; j+=4) {
+            for (var k = 0; k < 75; k+=4) {
+                dot = { x: i, y: j, z: k };
+                var color = classify(dot);
+                var mat = new THREE.MeshBasicMaterial( { color: COLORS[color + 2], transparent: true, opacity: 0.1 } );
+                var region = new THREE.Mesh( new THREE.CubeGeometry( 3, 3, 3 ), mat );
+                region.position.x = i;
+                region.position.y = j;
+                region.position.z = k;
+                scene.add(region);
+            }
         }
     }
 

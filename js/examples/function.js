@@ -6,22 +6,35 @@ var mouse = new THREE.Vector2(), INTERSECTED;
 var tooltip_sprite;
 var tooltip_canvas, tooltip_context, tooltip_texture;
 
-var data = [
-    [],
-    [],
-    []
+var FUNCTION = "sqrt(x^(3/2) + y^(3/2))";
+
+var data = { 
+    series: [
+        "Canada",
+        "Sweden",
+        "Mexico",
+    ],
+    columns: [
+        "2010",
+        "2011",
+        "2012",
+        "2013",
+    ],
+    values: [
+        [ 15, 20, 25, 30 ],
+        [ 20, 32, 68, 82 ],
+        [ 50, 15, 55, 72 ]
+    ]
+};
+
+var COLORS = [
+    0xff0000,
+    0x00ff00,
+    0x0000ff,
+    0xffff00,
+    0xff00ff,
+    0x00ffff
 ];
-
-var SIZE = 15;
-var MAX = 75;
-
-for (var i = 0; i < 3; i++) {
-    for (var j = 0; j < SIZE; j++) {
-        data[0].push( [ Math.random() * MAX, Math.random() * MAX, Math.random() * MAX ] );
-        data[1].push( [ Math.random() * MAX, Math.random() * MAX, Math.random() * MAX ] );
-        data[2].push( [ Math.random() * MAX, Math.random() * MAX, Math.random() * MAX ] );
-    }
-}
 
 var BASE_WIDTH = 3.0;
 var BASE_MULTIPLIER = 2.5;
@@ -38,110 +51,100 @@ var AXES = {
     }
 };
 
-var COLORS = [
-    0xff0000,
-    0x00ff00,
-    0x0000ff,
-    0xffff00,
-    0xff00ff,
-    0x00ffff
-];
+var SPACING = {
+    series: AXES.X.len / data.series.length,
+    columns: AXES.Y.len / data.columns.length
+};
 
 var OFFSET = {
     X: 30,
     Y: 10
 };
 
+var zFuncText = "c * (x^2 / a^2 - y^2 / b^2)";
+var zFunc = Parser.parse(zFuncText).toJSFunction( ['x','y'] );
+
+var a = -2.0, b = -3.0, c = -1.0, d = 1;
+
+var meshFunction;
+var segments = 20, 
+    xMin = -10, xMax = 10, xRange = xMax - xMin,
+    yMin = -10, yMax = 10, yRange = yMax - yMin,
+    zMin = -10, zMax = 10, zRange = zMax - zMin;
+    
+var graphGeometry;
+var gridMaterial, wireMaterial, vertexColorMaterial;
+var graphMesh;
+
 init();
 animate();
 
-function loadData() {
-    plot = new THREE.Object3D();
-
-    var max_data_value = Math.max.apply(Math, [].concat.apply([], data.values));
-
-    for (var i = 0; i < data.length; i++) {
-        var material = new THREE.MeshPhongMaterial( { color: COLORS[i + 2], shading: THREE.FlatShading, emissive: 0x555555, ambient: 0x333333, transparent: true, opacity: 0.9 } );
-        var text = new THREE.TextGeometry(
-            "Series " + i, 
-            { size: 16, height: 0.1, curveSegments: 6, font: "helvetiker", weight: "normal", style: "normal" } 
-        );
-        var textLabelMesh = new THREE.Mesh( text, material );
-        textLabelMesh.position.y += 20 + i * 30;
-        textLabelMesh.position.x -= 60;
-        textLabelMesh.rotation.z = Math.PI;
-        scene.add(textLabelMesh);
+function createGraph() {
+    xRange = xMax - xMin;
+    yRange = yMax - yMin;
+    zFunc = Parser.parse(zFuncText).toJSFunction( ['x','y'] );
+    meshFunction = function(x, y) 
+    {
+        x = xRange * x + xMin;
+        y = yRange * y + yMin;
+        var z = zFunc(x,y);
+        if ( isNaN(z) )
+            return new THREE.Vector3(0,0,0); // TODO: better fix
+        else
+            return new THREE.Vector3(x, y, z);
+    };
+    
+    // true => sensible image tile repeat...
+    graphGeometry = new THREE.ParametricGeometry( meshFunction, segments, segments, true );
+    console.log(graphGeometry);
+    
+    ///////////////////////////////////////////////
+    // calculate vertex colors based on Z values //
+    ///////////////////////////////////////////////
+    graphGeometry.computeBoundingBox();
+    zMin = graphGeometry.boundingBox.min.z;
+    zMax = graphGeometry.boundingBox.max.z;
+    zRange = zMax - zMin;
+    var color, point, face, numberOfSides, vertexIndex;
+    // faces are indexed using characters
+    var faceIndices = [ 'a', 'b', 'c', 'd' ];
+    // first, assign colors to vertices as desired
+    for ( var i = 0; i < graphGeometry.vertices.length; i++ ) 
+    {
+        point = graphGeometry.vertices[ i ];
+        color = new THREE.Color( 0x0000ff );
+        color.setHSL( 0.7 * (zMax - point.z) / zRange, 1, 0.5 );
+        graphGeometry.colors[i] = color; // use this array for convenience
     }
-
-    for (var i = 0; i < data.length; i++) {        
-        for (var j = 0; j < data[i].length; j++) {
-            var mat = [
-                new THREE.MeshPhongMaterial( { color: COLORS[i + 2], transparent: true, opacity: 0.85 } ),
-                new THREE.MeshPhongMaterial( { color: COLORS[i + 2], transparent: true, opacity: 0.85 } ),
-                new THREE.MeshPhongMaterial( { color: COLORS[i + 2], transparent: true, opacity: 0.85 } )
-            ];
-
-            var dot = new THREE.Mesh ( 
-                new THREE.SphereGeometry( 1, 32, 32 ), 
-                mat[i]
-            );
-
-            dot.datum = { x: data[i][j][0], y: data[i][j][1], z: data[i][j][2] };
-
-            dot.position.x = data[i][j][0];
-            dot.position.y = data[i][j][1];
-            dot.position.z = data[i][j][2];
-
-            plot.add(dot);
+    // copy the colors as necessary to the face's vertexColors array.
+    for ( var i = 0; i < graphGeometry.faces.length; i++ ) 
+    {
+        face = graphGeometry.faces[ i ];
+        numberOfSides = ( face instanceof THREE.Face3 ) ? 3 : 4;
+        for( var j = 0; j < numberOfSides; j++ ) 
+        {
+            vertexIndex = face[ faceIndices[ j ] ];
+            face.vertexColors[ j ] = graphGeometry.colors[ vertexIndex ];
         }
     }
-
-    scene.add(plot);
-}
-
-
-function drawGrid(gridSize) {
-    var grid_material = new THREE.LineBasicMaterial( { color: 0xeeeeee, transparent: true, opacity: 0.2 } );
-    var gridLines = new THREE.Object3D();   
-
-    for (var i = 0; i <= 75; i += gridSize) {
-
-        var line = new THREE.Geometry();
-        line.vertices.push(new THREE.Vector3(i, 0, 0));
-        line.vertices.push(new THREE.Vector3(i, 75, 0));
-        gridLines.add(new THREE.Line(line, grid_material));
-
-        line = new THREE.Geometry();
-        line.vertices.push(new THREE.Vector3(0, i, 0));
-        line.vertices.push(new THREE.Vector3(75, i, 0));
-        gridLines.add(new THREE.Line(line, grid_material));
-/**
-        line = new THREE.Geometry();
-        line.vertices.push(new THREE.Vector3(0, 0, i));
-        line.vertices.push(new THREE.Vector3(0, 100, i));
-        gridLines.add(new THREE.Line(line, grid_material));
-
-        line = new THREE.Geometry();
-        line.vertices.push(new THREE.Vector3(0, i, 0));
-        line.vertices.push(new THREE.Vector3(0, i, 100));
-        gridLines.add(new THREE.Line(line, grid_material));
-
-        line = new THREE.Geometry();
-        line.vertices.push(new THREE.Vector3(i, 0, 0));
-        line.vertices.push(new THREE.Vector3(i, 0, 100));
-        gridLines.add(new THREE.Line(line, grid_material));
-
-        line = new THREE.Geometry();
-        line.vertices.push(new THREE.Vector3(0, 0, i));
-        line.vertices.push(new THREE.Vector3(100, 0, i));
-        gridLines.add(new THREE.Line(line, grid_material));
-*/
-        gridLines.add(new THREE.Line(line, grid_material));
+    ///////////////////////
+    // end vertex colors //
+    ///////////////////////
+    
+    // material choices: vertexColorMaterial, wireMaterial , normMaterial , shadeMaterial
+    
+    if (graphMesh) 
+    {
+        scene.remove( graphMesh );
+        // renderer.deallocateObject( graphMesh );
     }
 
-    group.add(gridLines);
+    wireMaterial.map.repeat.set( segments, segments );
+    
+    graphMesh = new THREE.Mesh( graphGeometry, wireMaterial );
+    graphMesh.doubleSided = true;
+    scene.add(graphMesh);
 }
-
 
 function init() {
     container = document.createElement( 'div' );
@@ -152,7 +155,7 @@ function init() {
     camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
     
     camera.up = new THREE.Vector3( 0, 0, 1 );
-    camera.position.set( 150, 150, 200 );
+    camera.position.set( 25, 25, 30 );
 
     controls = new THREE.TrackballControls( camera );
     
@@ -194,10 +197,6 @@ function init() {
     //group.rotation.y = 0 * Math.PI / 180;
     //group.rotation.z = 180 * Math.PI / 180;
 
-    drawGrid(5);
-    loadData();
-    scene.add(group);
-
     renderer = new THREE.WebGLRenderer( { antialias: true } );
     renderer.setSize( window.innerWidth, window.innerHeight );
     renderer.setClearColor( 0x000000, 1 );
@@ -207,18 +206,39 @@ function init() {
     renderer.shadowMapHeight = 1024;
     renderer.shadowCameraFov = 35;
     
-    light = new THREE.SpotLight();
-    light.castShadow = true;
-    light.position.set(170, 300, 100);
+    // LIGHT
+    var light = new THREE.PointLight(0xffffff);
+    light.position.set(0,250,0);
     scene.add(light);
+    // SKYBOX/FOG
+    // scene.fog = new THREE.FogExp2( 0x888888, 0.00025 );
+    
+    ////////////
+    // CUSTOM //
+    ////////////
+    
+    scene.add( new THREE.AxisHelper() );
 
-    ambientLight = new THREE.PointLight(0x123456);
-    ambientLight.position.set(20, 150, 120);
-    scene.add(ambientLight);
+    // wireframe for xy-plane
+    var wireframeMaterial = new THREE.MeshBasicMaterial( { color: 0x000088, wireframe: true, side:THREE.DoubleSide } ); 
+    var floorGeometry = new THREE.PlaneGeometry(1000,1000,10,10);
+    var floor = new THREE.Mesh(floorGeometry, wireframeMaterial);
+    floor.position.z = -0.01;
+    
+    //scene.add(floor);
+    
+    var normMaterial = new THREE.MeshNormalMaterial;
+    var shadeMaterial = new THREE.MeshLambertMaterial( { color: 0xff0000 } );
+    
+    // "wireframe texture"
+    var wireTexture = new THREE.ImageUtils.loadTexture( 'images/square.png' );
+    wireTexture.wrapS = wireTexture.wrapT = THREE.RepeatWrapping; 
+    wireTexture.repeat.set( 40, 40 );
+    wireMaterial = new THREE.MeshBasicMaterial( { map: wireTexture, vertexColors: THREE.VertexColors, side:THREE.DoubleSide } );
 
-    ambientLight = new THREE.PointLight(0x123456);
-    ambientLight.position.set(-20, -150, 120);
-    scene.add(ambientLight);
+    var vertexColorMaterial  = new THREE.MeshBasicMaterial( { vertexColors: THREE.VertexColors } );
+
+    createGraph();
 
     document.body.appendChild( renderer.domElement ); 
 
@@ -266,7 +286,7 @@ function update() {
     projector.unprojectVector( vector, camera );
 
     raycaster.set( camera.position, vector.sub( camera.position ).normalize() );
-    var intersects = raycaster.intersectObjects( plot.children );
+    var intersects = raycaster.intersectObjects( scene.children );
 
     if ( intersects.length > 0 ) {
 
@@ -275,15 +295,9 @@ function update() {
 
             if ( INTERSECTED ) INTERSECTED.material.emissive.setHex(INTERSECTED.currentHex);
 
-            INTERSECTED = intersects[0].object;
-            INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex();
-            INTERSECTED.material.emissive.setHex( 0x666666 );
-
             tooltip_context.clearRect( 0, 0, 640, 480 );
-            var message = "(" + INTERSECTED.datum.x.toFixed(3) + ", " + INTERSECTED.datum.y.toFixed(3) + ", " + INTERSECTED.datum.z.toFixed(3) + " )";
-            console.log(message);
+            var message = "F(x,y) = " + zFuncText;
             var metrics = tooltip_context.measureText( message );
-            console.log(metrics);
             var width = metrics.width;
             tooltip_context.fillStyle = "rgba(255,255,255,0.95)"; // black border
             tooltip_context.fillRect( 0, 0, width + 8, 20 + 8);
