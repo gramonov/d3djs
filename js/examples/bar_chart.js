@@ -25,40 +25,6 @@ var data = {
     ]
 };
 
-var COLORS = [
-    0xff0000,
-    0x00ff00,
-    0x0000ff,
-    0xffff00,
-    0xff00ff,
-    0x00ffff
-];
-
-var BASE_WIDTH = 3.0;
-var BASE_MULTIPLIER = 2.5;
-
-var AXES = {
-    X: {
-        len: 50
-    },
-    Y: {
-        len: 50
-    },
-    Z: {
-        len: 50
-    }
-};
-
-var SPACING = {
-    series: AXES.X.len / data.series.length,
-    columns: AXES.Y.len / data.columns.length
-};
-
-var OFFSET = {
-    X: 30,
-    Y: 10
-};
-
 init();
 animate();
 
@@ -112,51 +78,7 @@ function loadData() {
         group.add(new THREE.Line(line, grid_material));
     }
 
-    var max_data_value = Math.max.apply(Math, [].concat.apply([], data.values));
-
-    for (var i = 0; i < data.values.length; i++) {        
-        for (var j = 0; j < data.values[i].length; j++) {
-            var bar_solid_material = new THREE.MeshPhongMaterial( { color: COLORS[i], transparent: true, opacity: 0.85 } );
-            var bar_foundation_material = new THREE.MeshBasicMaterial( { color: COLORS[i], shading: THREE.FlatShading, transparent: true, opacity: 0.5, wireframe: false } );
-            var bar_wireframe_material = new THREE.MeshBasicMaterial( { color: 0xffffff, shading: THREE.FlatShading, wireframe: true, transparent: true } );
-
-            var val = data.values[i][j] * AXES.Z.len / max_data_value;
-
-            var bar_solid = new THREE.Mesh ( 
-                new THREE.CubeGeometry( BASE_WIDTH, BASE_WIDTH, val ), 
-                bar_solid_material
-            );
-
-            bar_solid.datum = { series: i, column: j };
-
-            var bar_wireframe = new THREE.Mesh (
-                new THREE.CubeGeometry( BASE_WIDTH, BASE_WIDTH, val ), 
-                bar_wireframe_material
-            );
-
-            var bar_foundation = new THREE.Mesh (
-                new THREE.CubeGeometry( BASE_WIDTH * BASE_MULTIPLIER, BASE_WIDTH * BASE_MULTIPLIER, -0.5 ),
-                bar_foundation_material
-            );
-            
-            bar_solid.position.x = SPACING.series * (i + 1);
-            bar_solid.position.y = SPACING.columns * (j + 1);
-            bar_solid.position.z = val / 2;
-
-            bar_wireframe.position.x = SPACING.series * (i + 1);
-            bar_wireframe.position.y = SPACING.columns * (j + 1);
-            bar_wireframe.position.z = val / 2;
-
-            bar_foundation.position.x = SPACING.series * (i + 1);
-            bar_foundation.position.y = SPACING.columns * (j + 1);
-            
-            plot.add(bar_solid);
-            scene.add(bar_wireframe);
-            scene.add(bar_foundation);
-        }
-    }
-
-    scene.add(plot);
+    
 }
 
 

@@ -1,3 +1,32 @@
+var COLORS = [
+    0xff0000,
+    0x00ff00,
+    0x0000ff,
+    0xffff00,
+    0xff00ff,
+    0x00ffff
+];
+
+var BASE_WIDTH = 3.0;
+var BASE_MULTIPLIER = 2.5;
+
+var AXES = {
+    X: {
+        len: 50
+    },
+    Y: {
+        len: 50
+    },
+    Z: {
+        len: 50
+    }
+};
+
+var OFFSET = {
+    X: 30,
+    Y: 10
+};
+
 /** 
  *  d3d.js is a library for creating 3d charts, machine learning,
  *  and graph analysis.
@@ -12,14 +41,33 @@
 var DDDD = DDDD || { REVISION : '2'};
 
 /**
- *  Helper function.
+ *  Helper functions.
  */
 
 DDDD.prototype = {
 
   createCanvas: function ( width, height ) {
-
+    // todo
+    return null;
   }
+
+};
+
+/**
+ *  three.js custom helper methods.
+ */
+
+THREE.Object3D.prototype.clear = function () {
+
+  var children = this.children;
+  
+  for ( var i = 0; i < children.length; i++ ) {
+    
+    var child = children[i];
+    child.clear();
+    this.removeChild(child);
+
+  };
 
 };
 
@@ -34,9 +82,9 @@ DDDD.Engine = function () {
   this.container = document.createElement( 'div' );
   this.camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
   this.scene = new THREE.Scene();
+  this.plot = new THREE.Object3D();
   this.renderer = new THREE.WebGLRenderer( { antialias: true } );
   this.controls = new THREE.TrackballControls( this.camera );
-  this.plot = new THREE.Object3D();
   projector = new THREE.Projector();
   raycaster = new THREE.Raycaster();
   this.mouse = new THREE.Vector2();
@@ -54,9 +102,15 @@ DDDD.Engine.prototype = {
 
   prepareScene: function () {
 
+    // add plot to the scene
+
+    this.scene.add( this.plot );
+
     // setup renderer
 
     document.body.appendChild( this.container );
+    this.container.innerWidth = window.innerWidth;
+    this.container.innerHeight = window.innerHeight;
 
     // setup camera
 
@@ -81,7 +135,7 @@ DDDD.Engine.prototype = {
 
     // setup renderer
 
-    this.renderer.setSize( window.innerWidth, window.innerHeight );
+    this.renderer.setSize( this.container.innerWidth, this.container.innerHeight );
     this.renderer.setClearColor( 0x000000, 1 );
     this.renderer.shadowMapEnabled = true;
     this.renderer.shadowMapSoft = true;
@@ -136,6 +190,24 @@ DDDD.Engine.prototype = {
     init();
     animate();
 
+  },
+
+  clearScene: function () {
+
+    this.scene.clear();
+
+  },
+
+  addToPlot: function () {
+    for (var i = 0; i < arguments.length; i++) {
+      this.plot.add( arguments[i] );
+    }
+  },
+
+  addToScene: function () {
+    for (var i = 0; i < arguments.length; i++) {
+      this.scene.add( arguments[i] ); 
+    }
   }
 
 };
@@ -146,8 +218,10 @@ DDDD.Engine.prototype = {
 
 function init () {
 
-  document.body.appendChild( _ENGINE.renderer.domElement ); 
+  document.body.appendChild( _ENGINE.renderer.domElement );
+
   window.addEventListener( 'resize', onWindowResize, false );
+
   document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 
 };
@@ -155,7 +229,9 @@ function init () {
 function animate () {
 
   requestAnimationFrame( animate );
+
   _ENGINE.controls.update();
+
   render();
   //this.update();
 
@@ -192,19 +268,19 @@ function onDocumentMouseMove ( event ) {
 };
 
 /**
- *  Global privateengine.
+ *  Global private engine.
  */
 
 var _ENGINE = new DDDD.Engine();
-_ENGINE.initScene();
 
 /** 
- *  Bar chart class.
- *  Defines all the methods associated with construction and handling
- *  of the bar charts.
+ *  Plot class.
+ *  Defines the superclass of all possible plots.
  */
 
-DDDD.BarChart = function ( data, options ) {
+DDDD.Plot = function ( data, options ) {
+
+  _ENGINE.initScene();
 
   optionalArgs = ( typeof options === 'undefined' ) ? { canvasId: "plotarea" } : options;
 
@@ -214,22 +290,102 @@ DDDD.BarChart = function ( data, options ) {
   
   }
 
+  this.data = data;
+
+  this.drawLabels();
+  this.drawHelpers();
+
   this.loadData( data );
 
   return this;
 
 };
 
-DDDD.BarChart.prototype = {
+DDDD.Plot.prototype = {
 
-  constructor: DDDD.BarChart,
+  constructor: DDDD.Plot,
 
-  loadData: function ( data ) {
-    
-    this.data = data;
-  
+  drawLabels: function () {
+    // todo
+    return null;
+  },
+
+  drawHelpers: function () {
+    // todo
+    return null;
   }
 
+};
+
+/** 
+ *  Bar chart class.
+ *  Defines all the methods associated with construction and handling
+ *  of the bar charts.
+ *  @inherits DDDD.Plot
+ */
+
+DDDD.BarChart = function (data, options) {
+
+  DDDD.Plot.call( this, data, options );
+
+}
+
+DDDD.BarChart.prototype = Object.create( DDDD.Plot.prototype );
+
+DDDD.BarChart.prototype.loadData = function (data) {
+
+  //_ENGINE.clearScene();
+
+  var SPACING = {
+    series: AXES.X.len / data.series.length,
+    columns: AXES.Y.len / data.columns.length
+  };
+
+  var maxDataValue = Math.max.apply(Math, [].concat.apply([], data.values));
+
+  for (var i = 0; i < data.values.length; i++) {
+    for (var j = 0; j < data.values[i].length; j++) {
+
+      var bar_solid_material = new THREE.MeshPhongMaterial( { color: COLORS[i], transparent: true, opacity: 0.85 } );
+      var bar_foundation_material = new THREE.MeshBasicMaterial( { color: COLORS[i], shading: THREE.FlatShading, transparent: true, opacity: 0.5, wireframe: false } );
+      var bar_wireframe_material = new THREE.MeshBasicMaterial( { color: 0xffffff, shading: THREE.FlatShading, wireframe: true, transparent: true } );
+
+      var val = data.values[i][j] * AXES.Z.len / maxDataValue;
+
+      var bar_solid = new THREE.Mesh ( 
+          new THREE.CubeGeometry( BASE_WIDTH, BASE_WIDTH, val ), 
+          bar_solid_material
+      );
+
+      bar_solid.datum = { series: i, column: j };
+
+      var bar_wireframe = new THREE.Mesh (
+          new THREE.CubeGeometry( BASE_WIDTH, BASE_WIDTH, val ), 
+          bar_wireframe_material
+      );
+
+      var bar_foundation = new THREE.Mesh (
+          new THREE.CubeGeometry( BASE_WIDTH * BASE_MULTIPLIER, BASE_WIDTH * BASE_MULTIPLIER, -0.5 ),
+          bar_foundation_material
+      );
+      
+      bar_solid.position.x = SPACING.series * (i + 1);
+      bar_solid.position.y = SPACING.columns * (j + 1);
+      bar_solid.position.z = val / 2;
+
+      bar_wireframe.position.x = SPACING.series * (i + 1);
+      bar_wireframe.position.y = SPACING.columns * (j + 1);
+      bar_wireframe.position.z = val / 2;
+
+      bar_foundation.position.x = SPACING.series * (i + 1);
+      bar_foundation.position.y = SPACING.columns * (j + 1);
+
+      _ENGINE.addToPlot( bar_solid );
+      _ENGINE.addToScene( bar_wireframe, bar_foundation )
+
+    }
+  }
+  
 };
 
 /**
