@@ -63,7 +63,6 @@ init();
 animate();
 
 function loadData() {
-    plot = new THREE.Object3D();
 
     for (var i = 0; i < data.series.length; i++) {
         var material = new THREE.MeshBasicMaterial( { color: COLORS[i], shading: THREE.FlatShading, transparent: true, opacity: 0.9 } );
@@ -205,31 +204,7 @@ function drawGrid(gridSize) {
 
 
 function init() {
-    container = document.createElement( 'div' );
-    document.body.appendChild( container );
-
-    scene = new THREE.Scene();
-
-    camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
     
-    camera.up = new THREE.Vector3( 0, 0, 1 );
-    camera.position.set( 150, 150, 200 );
-
-    controls = new THREE.TrackballControls( camera );
-    
-    controls.rotateSpeed = 1.5;
-    controls.zoomSpeed = 0.4;
-    controls.panSpeed = 1.0;
-
-    controls.noZoom = false;
-    controls.noPan = false;
-
-    controls.staticMoving = true;
-    controls.dynamicDampingFactor = 0.3;
-
-    controls.keys = [ 65, 83, 68 ];
-
-    controls.addEventListener( 'change', render );
 
     group = new THREE.Object3D();
     
@@ -259,67 +234,23 @@ function init() {
     loadData();
     scene.add(group);
 
-    renderer = new THREE.WebGLRenderer( { antialias: true } );
-    renderer.setSize( window.innerWidth, window.innerHeight );
-    renderer.setClearColor( 0x000000, 1 );
-    renderer.shadowMapEnabled = true;
-    renderer.shadowMapSoft = true;
-    renderer.shadowMapWidth = 1024;
-    renderer.shadowMapHeight = 1024;
-    renderer.shadowCameraFov = 35;
     
-    light = new THREE.SpotLight();
-    light.castShadow = true;
-    light.position.set(170, 300, 100);
-    scene.add(light);
 
-    ambientLight = new THREE.PointLight(0x123456);
-    ambientLight.position.set(20, 150, 120);
-    scene.add(ambientLight);
-
-    ambientLight = new THREE.PointLight(0x123456);
-    ambientLight.position.set(-20, -150, 120);
-    scene.add(ambientLight);
-
-    document.body.appendChild( renderer.domElement ); 
-
-    window.addEventListener( 'resize', onWindowResize, false );
-
-    projector = new THREE.Projector();
-    raycaster = new THREE.Raycaster();
     
-    document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+    
+    
     console.log(plot);
 
-    tooltip_canvas = document.createElement('canvas');
-    tooltip_context = tooltip_canvas.getContext('2d');
-    tooltip_context.font = "Bold 13px Arial";
-    tooltip_context.fillStyle = "rgba(0,0,0,0.95)";
     
-    // canvas contents will be used for a texture
-    tooltip_texture = new THREE.Texture(tooltip_canvas) 
-    tooltip_texture.needsUpdate = true;
-    
-    var spriteMaterial = new THREE.SpriteMaterial( { map: tooltip_texture, useScreenCoordinates: true, alignment: THREE.SpriteAlignment.topLeft } );
-    
-    tooltip_sprite = new THREE.Sprite( spriteMaterial );
-    tooltip_sprite.scale.set( 300, 150, 1.0 );
-    tooltip_sprite.position.set( 50, 50, 0 );
-    scene.add( tooltip_sprite );   
+ 
 }
 
 function render() {
-    camera.lookAt( scene.position );
 
-    renderer.render( scene, camera );
 }
 
 function animate() {
-    requestAnimationFrame( animate );
-    controls.update();
 
-    render();
-    update();
 }
 
 function update() {
@@ -366,24 +297,4 @@ function update() {
         tooltip_context.clearRect( 0, 0, 300, 300 );
         tooltip_texture.needsUpdate = true;
     }
-}
-
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-
-    renderer.setSize( window.innerWidth, window.innerHeight );
-
-    controls.handleResize();
-
-    render();
-}
-
-function onDocumentMouseMove( event ) {
-    event.preventDefault();
-
-    tooltip_sprite.position.set( event.clientX, event.clientY, 0 );
-
-    mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-    mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 }
