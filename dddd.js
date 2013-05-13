@@ -161,7 +161,7 @@ DDDD.Engine.prototype = {
     // setup tooltips
 
     this.tooltipContext = this.tooltipCanvas.getContext( '2d' );
-    this.tooltipContext.font = "Bold 13px Arial";
+    this.tooltipContext.font = "Bold 14px Helvetica";
     this.tooltipContext.fillStyle = "rgba(0,0,0,0.95)";
     
     this.tooltipTexture = new THREE.Texture( this.tooltipCanvas ) 
@@ -178,8 +178,9 @@ DDDD.Engine.prototype = {
     });
     
     this.tooltipSprite = new THREE.Sprite( this.tooltipMaterial );
-    this.tooltipSprite.scale.set( 300, 150, 1.0 );
     this.tooltipSprite.position.set( 50, 50, 0 );
+    this.tooltipSprite.scale.set( 300, 150, 1.0 );
+    console.log(this.tooltipSprite);
 
     this.scene.add( this.tooltipSprite );
 
@@ -257,12 +258,13 @@ function update() {
       if ( _ENGINE.intersected ) _ENGINE.intersected.material.color.setHex( _ENGINE.intersected.currentHex );
       _ENGINE.intersected = intersects[0].object;
       _ENGINE.intersected.currentHex = _ENGINE.intersected.material.color.getHex();
-      _ENGINE.intersected.material.color.setHex( 0x666666 );
-
+      _ENGINE.intersected.material.color.setHex( 0xeeeeee );
+      
       _ENGINE.tooltipContext.clearRect( 0, 0, 640, 480 );
       var message = _ENGINE.intersected.tooltipMessage;
       var metrics = _ENGINE.tooltipContext.measureText( message );
       var width = metrics.width;
+
       _ENGINE.tooltipContext.fillStyle = "rgba(255,255,255,0.95)";
       _ENGINE.tooltipContext.fillRect( 0, 0, width + 8, 20 + 8);
       _ENGINE.tooltipContext.fillStyle = "rgba(0,0,0,0.95)";
@@ -488,9 +490,7 @@ DDDD.BarChart.prototype.loadData = function (data) {
       bar_foundation.position.x = this.SPACING.series * (i + 1);
       bar_foundation.position.y = this.SPACING.columns * (j + 1);
 
-      bar_solid.tooltipMessage = "Series: " + data.series[i] + " " +
-        "Column: " + data.columns[j] + " " +
-        "Value : " + data.values[i][j];
+      bar_solid.tooltipMessage = "Value : " + Math.floor(data.values[i][j] * 100) / 100;
 
       _ENGINE.addToPlot( bar_solid );
       _ENGINE.addToScene( bar_wireframe, bar_foundation )
