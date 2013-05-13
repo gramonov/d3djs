@@ -29,55 +29,6 @@ init();
 animate();
 
 function loadData() {
-
-    for (var i = 0; i < data.series.length; i++) {
-        var material = new THREE.MeshBasicMaterial( { color: COLORS[i], shading: THREE.FlatShading, transparent: true, opacity: 0.9 } );
-        var text = new THREE.TextGeometry(
-            data.series[i], 
-            { size: 5, height: 0.1, curveSegments: 6, font: "helvetiker", weight: "normal", style: "normal" } 
-        );
-        var textLabelMesh = new THREE.Mesh( text, material );
-        textLabelMesh.position.x += SPACING.series * (i + 1);
-        textLabelMesh.position.y -= OFFSET.X;
-        textLabelMesh.rotation.x = 0 * Math.PI / 180;
-        textLabelMesh.rotation.y = 0 * Math.PI / 180;
-        textLabelMesh.rotation.z = 90 * Math.PI / 180;
-
-        group.add(textLabelMesh);
-
-        var line = new THREE.Geometry();
-        
-        line.vertices.push( new THREE.Vector3( SPACING.series * (i + 1) + SPACING.series / 2, -35, 0 ) );
-        line.vertices.push( new THREE.Vector3( SPACING.series * (i + 1) + SPACING.series / 2, 75, 0 ) );
-        var grid_material = new THREE.LineBasicMaterial( { color: 0xeeeeee, transparent: true, opacity: 0.2 } );
-        
-        group.add(new THREE.Line(line, grid_material));
-    }
-
-    for (var i = 0; i < data.columns.length; i++) {
-        var material = new THREE.MeshBasicMaterial( { color: 0xeeeeee, shading: THREE.FlatShading, transparent: true, opacity: 0.9 } );
-        var text = new THREE.TextGeometry(
-            data.columns[i], 
-            { size: 5, height: 0.1, curveSegments: 6, font: "helvetiker", weight: "normal", style: "normal" } 
-        );
-        var textLabelMesh = new THREE.Mesh( text, material );
-        textLabelMesh.position.y += SPACING.columns * (i + 1);
-        textLabelMesh.position.x -= OFFSET.Y;
-        textLabelMesh.rotation.x = 0 * Math.PI / 180;
-        textLabelMesh.rotation.y = 0 * Math.PI / 180;
-        textLabelMesh.rotation.z = 180 * Math.PI / 180;
-        
-        group.add(textLabelMesh);
-    
-        var line = new THREE.Geometry();
-        
-        line.vertices.push( new THREE.Vector3( -35, SPACING.columns * (i + 1) + SPACING.columns / 2, 0 ) );
-        line.vertices.push( new THREE.Vector3( 75, SPACING.columns * (i + 1) + SPACING.columns / 2, 0 ) );
-        var grid_material = new THREE.LineBasicMaterial( { color: 0xeeeeee, transparent: true, opacity: 0.2 } );
-
-        group.add(new THREE.Line(line, grid_material));
-    }
-
     
 }
 

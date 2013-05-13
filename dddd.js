@@ -85,8 +85,8 @@ DDDD.Engine = function () {
   this.plot = new THREE.Object3D();
   this.renderer = new THREE.WebGLRenderer( { antialias: true } );
   this.controls = new THREE.TrackballControls( this.camera );
-  projector = new THREE.Projector();
-  raycaster = new THREE.Raycaster();
+  this.projector = new THREE.Projector();
+  this.raycaster = new THREE.Raycaster();
   this.mouse = new THREE.Vector2();
   this.tooltipCanvas = document.createElement( 'canvas' );
 
@@ -233,7 +233,7 @@ function animate () {
   _ENGINE.controls.update();
 
   render();
-  //this.update();
+  update();
 
 };
 
@@ -241,6 +241,46 @@ function render () {
 
   _ENGINE.renderer.render( _ENGINE.scene, _ENGINE.camera );
 
+}
+
+function update() {
+  var vector = new THREE.Vector3( _ENGINE.mouse.x, _ENGINE.mouse.y, 1 );
+  _ENGINE.projector.unprojectVector( vector, _ENGINE.camera );
+
+  _ENGINE.raycaster.set( _ENGINE.camera.position, vector.sub( _ENGINE.camera.position ).normalize() );
+  var intersects = _ENGINE.raycaster.intersectObjects( _ENGINE.plot.children );
+
+  if ( intersects.length > 0 ) {
+
+    if ( _ENGINE.intersected != intersects[0].object ) {
+
+      if ( _ENGINE.intersected ) _ENGINE.intersected.material.color.setHex( _ENGINE.intersected.currentHex );
+      _ENGINE.intersected = intersects[0].object;
+      _ENGINE.intersected.currentHex = _ENGINE.intersected.material.color.getHex();
+      _ENGINE.intersected.material.color.setHex( 0x666666 );
+
+      _ENGINE.tooltipContext.clearRect( 0, 0, 640, 480 );
+      var message = _ENGINE.intersected.tooltipMessage;
+      var metrics = _ENGINE.tooltipContext.measureText( message );
+      var width = metrics.width;
+      _ENGINE.tooltipContext.fillStyle = "rgba(255,255,255,0.95)";
+      _ENGINE.tooltipContext.fillRect( 0, 0, width + 8, 20 + 8);
+      _ENGINE.tooltipContext.fillStyle = "rgba(0,0,0,0.95)";
+      _ENGINE.tooltipContext.fillRect( 2, 2, width + 4, 20 + 4 );
+      _ENGINE.tooltipContext.fillStyle = "rgba(255,255,255,1)";
+      _ENGINE.tooltipContext.fillText( message, 4, 20 );
+      _ENGINE.tooltipTexture.needsUpdate = true;
+    }
+
+  } else {
+
+      if ( _ENGINE.intersected ) _ENGINE.intersected.material.color.setHex( _ENGINE.intersected.currentHex );
+
+      _ENGINE.intersected = null;
+
+      _ENGINE.tooltipContext.clearRect( 0, 0, 300, 300 );
+      _ENGINE.tooltipTexture.needsUpdate = true;
+  }
 }
 
 function onWindowResize () {
@@ -282,6 +322,15 @@ DDDD.Plot = function ( data, options ) {
 
   _ENGINE.initScene();
 
+  this.SPACING = {
+
+    series: BASE_WIDTH * BASE_MULTIPLIER * 1.25,
+    columns: BASE_WIDTH * BASE_MULTIPLIER * 1.25
+  
+  };
+
+  this.COLORS = this.createColorPalette( data.series.length )
+
   optionalArgs = ( typeof options === 'undefined' ) ? { canvasId: "plotarea" } : options;
 
   for ( var param in optionalArgs ) {
@@ -306,13 +355,77 @@ DDDD.Plot.prototype = {
   constructor: DDDD.Plot,
 
   drawLabels: function () {
-    // todo
-    return null;
+
+    for (var i = 0; i < this.data.series.length; i++) {
+
+      var material = new THREE.MeshBasicMaterial( { color: this.COLORS[i], shading: THREE.FlatShading, transparent: true, opacity: 0.9 } );
+      var text = new THREE.TextGeometry(
+          this.data.series[i], 
+          { size: 5, height: 0.1, curveSegments: 6, font: "helvetiker", weight: "normal", style: "normal" } 
+      );
+
+      var textLabelMesh = new THREE.Mesh( text, material );
+      textLabelMesh.position.x += this.SPACING.series * (i + 1) + 2;
+      textLabelMesh.position.y -= OFFSET.X;
+      textLabelMesh.rotation.x = 0 * Math.PI / 180;
+      textLabelMesh.rotation.y = 0 * Math.PI / 180;
+      textLabelMesh.rotation.z = 90 * Math.PI / 180;
+
+      _ENGINE.addToScene( textLabelMesh );
+
+      var line = new THREE.Geometry();
+      
+      line.vertices.push( new THREE.Vector3( this.SPACING.series * (i + 1) + this.SPACING.series / 2, -35, 0 ) );
+      line.vertices.push( new THREE.Vector3( this.SPACING.series * (i + 1) + this.SPACING.series / 2, 75, 0 ) );
+      var grid_material = new THREE.LineBasicMaterial( { color: 0xeeeeee, transparent: true, opacity: 0.2 } );
+      
+      _ENGINE.addToScene( new THREE.Line( line, grid_material ) );
+    }
+
+    for (var i = 0; i < this.data.columns.length; i++) {
+      var material = new THREE.MeshBasicMaterial( { color: 0xeeeeee, shading: THREE.FlatShading, transparent: true, opacity: 0.9 } );
+      var text = new THREE.TextGeometry(
+          this.data.columns[i], 
+          { size: 5, height: 0.1, curveSegments: 6, font: "helvetiker", weight: "normal", style: "normal" } 
+      );
+
+      var textLabelMesh = new THREE.Mesh( text, material );
+      textLabelMesh.position.y += this.SPACING.columns * (i + 1) + 2;
+      textLabelMesh.position.x -= OFFSET.Y;
+      textLabelMesh.rotation.x = 0 * Math.PI / 180;
+      textLabelMesh.rotation.y = 0 * Math.PI / 180;
+      textLabelMesh.rotation.z = 180 * Math.PI / 180;
+      
+      _ENGINE.addToScene( textLabelMesh );
+  
+      var line = new THREE.Geometry();
+      
+      line.vertices.push( new THREE.Vector3( -35, this.SPACING.columns * (i + 1) + this.SPACING.columns / 2, 0 ) );
+      line.vertices.push( new THREE.Vector3( 75, this.SPACING.columns * (i + 1) + this.SPACING.columns / 2, 0 ) );
+      var grid_material = new THREE.LineBasicMaterial( { color: 0xeeeeee, transparent: true, opacity: 0.2 } );
+
+      _ENGINE.addToScene( new THREE.Line( line, grid_material ) );
+    }
+
   },
 
   drawHelpers: function () {
     // todo
     return null;
+  },
+
+  createColorPalette: function ( size ) {
+
+    var colors = [];
+
+    for ( var i = 0; i < size; i++ ) {
+
+      colors.push( Math.random()*0xFFFFFF<<0 );
+    
+    }
+
+    return colors;
+
   }
 
 };
@@ -336,18 +449,13 @@ DDDD.BarChart.prototype.loadData = function (data) {
 
   //_ENGINE.clearScene();
 
-  var SPACING = {
-    series: AXES.X.len / data.series.length,
-    columns: AXES.Y.len / data.columns.length
-  };
-
   var maxDataValue = Math.max.apply(Math, [].concat.apply([], data.values));
 
   for (var i = 0; i < data.values.length; i++) {
     for (var j = 0; j < data.values[i].length; j++) {
 
-      var bar_solid_material = new THREE.MeshPhongMaterial( { color: COLORS[i], transparent: true, opacity: 0.85 } );
-      var bar_foundation_material = new THREE.MeshBasicMaterial( { color: COLORS[i], shading: THREE.FlatShading, transparent: true, opacity: 0.5, wireframe: false } );
+      var bar_solid_material = new THREE.MeshBasicMaterial( { color: this.COLORS[i], shading: THREE.FlatShading, transparent: true, opacity: 0.8 } );
+      var bar_foundation_material = new THREE.MeshBasicMaterial( { color: this.COLORS[i], shading: THREE.FlatShading, transparent: true, opacity: 0.5, wireframe: false } );
       var bar_wireframe_material = new THREE.MeshBasicMaterial( { color: 0xffffff, shading: THREE.FlatShading, wireframe: true, transparent: true } );
 
       var val = data.values[i][j] * AXES.Z.len / maxDataValue;
@@ -369,16 +477,20 @@ DDDD.BarChart.prototype.loadData = function (data) {
           bar_foundation_material
       );
       
-      bar_solid.position.x = SPACING.series * (i + 1);
-      bar_solid.position.y = SPACING.columns * (j + 1);
+      bar_solid.position.x = this.SPACING.series * (i + 1);
+      bar_solid.position.y = this.SPACING.columns * (j + 1);
       bar_solid.position.z = val / 2;
 
-      bar_wireframe.position.x = SPACING.series * (i + 1);
-      bar_wireframe.position.y = SPACING.columns * (j + 1);
+      bar_wireframe.position.x = this.SPACING.series * (i + 1);
+      bar_wireframe.position.y = this.SPACING.columns * (j + 1);
       bar_wireframe.position.z = val / 2;
 
-      bar_foundation.position.x = SPACING.series * (i + 1);
-      bar_foundation.position.y = SPACING.columns * (j + 1);
+      bar_foundation.position.x = this.SPACING.series * (i + 1);
+      bar_foundation.position.y = this.SPACING.columns * (j + 1);
+
+      bar_solid.tooltipMessage = "Series: " + data.series[i] + " " +
+        "Column: " + data.columns[j] + " " +
+        "Value : " + data.values[i][j];
 
       _ENGINE.addToPlot( bar_solid );
       _ENGINE.addToScene( bar_wireframe, bar_foundation )
