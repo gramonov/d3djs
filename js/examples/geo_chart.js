@@ -94,17 +94,15 @@ function latLongToVector3(lat, lon, radius, heigth) {
     return new THREE.Vector3(x,y,z);
 }
 
-function addDensity(data) {
-    plot = new THREE.Object3D();
-    // the geometry that will contain all our cubes
-    var geom = new THREE.Geometry();
-    // material to use for each of our elements. Could use a set of materials to
-    // add colors relative to the density. Not done here.
+function addDensity ( data ) {
     
-    for (var i = 0 ; i < data.length ; i++) {
+    var geom = new THREE.Geometry();
+    
+    for ( var i = 0 ; i < data.length ; i++ ) {
     
         var color = 0x000000;
-        switch (data[i].keyword) {
+        switch ( data[i].keyword ) {
+
             case "Anthrax" : color = 0x00ff00; break;
             case "Varicella" : color = 0xffff00; break;
             case "Common Cold" : color = 0x0000ff; break;
@@ -115,13 +113,11 @@ function addDensity(data) {
             case "Mumps" : color = 0xf00f0; break;
             case "Measles" : color = 0xf0f0f0; break;
             case "Dengue" : color = 0x0f0f0f; break;
+            default: break;
         }
-        var cubeMat = new THREE.MeshPhongMaterial( { color: color, emissive: 0x222222 } );
-        //get the data, and set the offset, we need to do this since the x,y coordinates
-        //from the data aren't in the correct format
 
-        // calculate the position where we need to start the cube
-        var position = latLongToVector3(data[i].lat, data[i].lng, 50, 2);
+        var cubeMat = new THREE.MeshPhongMaterial( { color: color, emissive: 0x222222 } );
+        var position = this._latLongToVector3( data[i].lat, data[i].lng, 50, 2 );
 
         // create the cube
         var cube = new THREE.Mesh(new THREE.CubeGeometry(0.5,0.5,110), cubeMat);

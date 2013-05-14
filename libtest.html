@@ -16,8 +16,9 @@
 
   <script>
     var data = DDDD.generateData( 5 )
-    var points = DDDD.generatePoints( 10 );
+    var points = DDDD.generatePoints( 10, 5 );
+    var tweets = DDDD.generateGeodata( 100 );
     console.log(data);
-    var chart = new DDDD.Scatterplot( points );
+    var chart = new DDDD.GeoChart( tweets );
   </script>
 </html>

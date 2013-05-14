@@ -95,6 +95,40 @@ DDDD.generatePoints = function ( size, clusterNum, maxValue ) {
 
 };
 
+// generate geodata from twitter
+
+DDDD.generateGeodata = function ( size ) {
+
+  var data = [];
+
+  var DISEASE_MAP = [
+    "Anthrax",
+    "Varicella",
+    "Common Cold",
+    "Gastroenteritis",
+    "Std",
+    "Malaria",
+    "Tuberculosis",
+    "Mumps",
+    "Measles",
+    "Dengue"
+  ];
+
+  for ( var i = 0; i < size; i++ ) {
+
+    size = typeof size !== 'undefined' ? size : 50;
+    var lat = (Math.random() * 360 - 180).toFixed(3) * 1
+    var lng = (Math.random() * 360 - 180).toFixed(3) * 1
+    var disease = DISEASE_MAP[Math.floor(Math.random() * 9)];
+
+    data.push( { name: "testname", text: "tweet text is here", keyword: disease, lat: lat, lng: lng } );
+
+  }
+
+  return data;
+
+}
+
 /**
  *  three.js custom helper methods.
  */
@@ -744,6 +778,119 @@ DDDD.Scatterplot.prototype.drawLabels = function () {
   }
 
   _ENGINE.addToScene( gridLines );
+
+};
+
+/** 
+ *  Geo chart class.
+ *  Defines all the methods associated with construction and handling
+ *  of the geo charts.
+ *  @inherits DDDD.Plot
+ */
+
+DDDD.GeoChart = function (data, options) {
+
+  DDDD.Plot.call( this, data, options );
+
+}
+
+DDDD.GeoChart.prototype = Object.create( DDDD.Plot.prototype );
+
+DDDD.GeoChart.prototype.loadData = function (data) {
+
+  this._setupEarth();
+  this._addDensity( data );
+  
+};
+
+
+DDDD.GeoChart.prototype._setupEarth = function () {
+
+    var spGeo = new THREE.SphereGeometry( 100, 50, 50);
+    var planetTexture = THREE.ImageUtils.loadTexture( "images/earth2.jpg" );
+    var mat2 =  new THREE.MeshPhongMaterial( {
+        map: planetTexture,
+        shininess: 0.2 
+    });
+    
+    sp = new THREE.Mesh( spGeo,mat2 );
+    _ENGINE.addToScene( sp );
+
+    light = new THREE.DirectionalLight( 0x3333ee, 3.5, 500 );
+    _ENGINE.addToScene( light );
+    light.position.set( 1800, 500, 1800 );
+
+    light = new THREE.DirectionalLight( 0x3333ee, 3.5, 500 );
+    _ENGINE.addToScene( light );
+    light.position.set( -1800, 500, -1800 );
+
+    light = new THREE.DirectionalLight( 0x3333ee, 3.5, 500 );
+    _ENGINE.addToScene( light );
+    light.position.set( -1800, 500, 1800 );
+
+    ight = new THREE.DirectionalLight( 0x3333ee, 3.5, 500 );
+    _ENGINE.addToScene( light );
+    light.position.set( 1800, 500, -1800 );
+
+};
+
+DDDD.GeoChart.prototype._addDensity = function ( data ) {
+    
+    var geom = new THREE.Geometry();
+    
+    for ( var i = 0 ; i < data.length ; i++ ) {
+    
+        var color = 0x000000;
+        switch ( data[i].keyword ) {
+
+            case "Anthrax" : color = 0x00ff00; break;
+            case "Varicella" : color = 0xffff00; break;
+            case "Common Cold" : color = 0x0000ff; break;
+            case "Gastroenteritis" : color = 0xff00ff; break;
+            case "Std" : color = 0xff0000; break;
+            case "Malaria" : color = 0x00ffff; break;
+            case "Tuberculosis" : color = 0xf0f00; break;
+            case "Mumps" : color = 0xf00f0; break;
+            case "Measles" : color = 0xf0f0f0; break;
+            case "Dengue" : color = 0x0f0f0f; break;
+            default: break;
+        
+        }
+
+        var cubeMat = new THREE.MeshBasicMaterial( { color: color, shading: THREE.FlatShading, transparent: true, opacity: 0.90 } );
+        var position = this._latLongToVector3( data[i].lat, data[i].lng, 50, 2 );
+
+        var cube = new THREE.Mesh(
+        
+          new THREE.CubeGeometry( 0.5, 0.5, 120 ), 
+          cubeMat
+        
+        );
+
+        cube.datum = data[i];
+        cube.position = position;
+        cube.lookAt( new THREE.Vector3( 0, 0, 0 ) );
+        _ENGINE.addToPlot( cube );
+    
+    }
+};
+
+DDDD.GeoChart.prototype._latLongToVector3 = function ( lat, lon, radius, heigth ) {
+    var phi = lat * Math.PI / 180;
+    var theta = (lon - 180) * Math.PI / 180;
+
+    var x = -(radius + heigth) * Math.cos(phi) * Math.cos(theta);
+    var y = (radius + heigth) * Math.sin(phi);
+    var z = (radius + heigth) * Math.cos(phi) * Math.sin(theta);
+
+    return new THREE.Vector3( x, y, z );
+}
+
+DDDD.GeoChart.prototype.drawLabels = function () {
+
+  // no additional label helpers for pie chart
+
+  return null;
 
 };
 
