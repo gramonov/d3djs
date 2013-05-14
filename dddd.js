@@ -563,10 +563,10 @@ DDDD.PieChart.prototype._pieSegment = function ( start, end, thickness, value, c
     this.piePieces[this.piece].geo.normalsNeedUpdate = true;
     this.piePieces[this.piece].geo.computeFaceNormals();
     this.piePieces[this.piece].geo.computeBoundingSphere();
-
+    console.log(this.sum);
     segment.datum = { idx: this.piece };
     var val = Math.floor(data.values[this.piece] * 100) / 100;
-    segment.tooltipMessage = "Value : " + val + " | " + ( Math.floor(val / this.sum) * 100 ) / 100 + "%";
+    segment.tooltipMessage = "Value : " + val + " | " + Math.floor( val / this.sum * 10000 ) / 100 + "%";
 
     return segment;
 
