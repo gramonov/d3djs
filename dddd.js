@@ -534,7 +534,7 @@ DDDD.Plot.prototype = {
  *  @inherits DDDD.Plot
  */
 
-DDDD.BarChart = function (data, options) {
+DDDD.BarChart = function ( data, options  ) {
 
   DDDD.Plot.call( this, data, options );
 
@@ -602,7 +602,7 @@ DDDD.BarChart.prototype.loadData = function (data) {
  *  @inherits DDDD.Plot
  */
 
-DDDD.PieChart = function (data, options) {
+DDDD.PieChart = function ( data, options ) {
 
   this.piePieces = [];
   this.piece = 0;

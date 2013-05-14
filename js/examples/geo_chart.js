@@ -117,7 +117,7 @@ function addDensity ( data ) {
         }
 
         var cubeMat = new THREE.MeshPhongMaterial( { color: color, emissive: 0x222222 } );
-        var position = this._latLongToVector3( data[i].lat, data[i].lng, 50, 2 );
+        var position = latLongToVector3( data[i].lat, data[i].lng, 50, 2 );
 
         // create the cube
         var cube = new THREE.Mesh(new THREE.CubeGeometry(0.5,0.5,110), cubeMat);
