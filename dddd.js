@@ -59,6 +59,42 @@ DDDD.generateData = function ( seriesSize, columnSize, columnStart, maxValue ) {
 
 };
 
+// point generator
+
+DDDD.generatePoints = function ( size, clusterNum, maxValue ) {
+
+  data = [];
+
+  size = typeof size !== 'undefined' ? size : 10;
+  clusterNum = typeof clusterNum !== 'undefined' ? clusterNum : 3;
+  maxValue = typeof maxValue !== 'undefined' ? maxValue : 150;
+
+  for ( var i = 0; i < clusterNum; i++ ) {
+
+    data.push( [] );
+
+  }
+
+  for ( var i = 0; i < clusterNum; i++ ) {
+    for ( var j = 0; j < size; j++ ) {
+      
+      var point = [];
+
+      for ( var k = 0; k < 3; k++ ) {
+
+        point.push( Math.random() * maxValue );    
+      
+      }
+
+      data[i].push( point );
+      
+    }
+  }
+
+  return data;
+
+};
+
 /**
  *  three.js custom helper methods.
  */
@@ -353,7 +389,7 @@ DDDD.Plot = function ( data, options ) {
 
   this.OFFSET = { X: 30, Y: 10 };
 
-  this.COLORS = this.createColorPalette( data.series.length )
+  this.COLORS = this.createColorPalette( data )
 
   optionalArgs = ( typeof options === 'undefined' ) ? { canvasId: "plotarea" } : options;
 
@@ -438,9 +474,12 @@ DDDD.Plot.prototype = {
     return null;
   },
 
-  createColorPalette: function ( size ) {
+  createColorPalette: function ( data ) {
 
     var colors = [];
+    console.log('series' in data);
+
+    var size = 'series' in data ? data.series.length : data.length; 
 
     for ( var i = 0; i < size; i++ ) {
 
@@ -626,19 +665,93 @@ DDDD.PieChart.prototype.drawLabels = function () {
 
 };
 
+/** 
+ *  Scatterplot class.
+ *  Defines all the methods associated with construction and handling
+ *  of the scatterplot.
+ *  @inherits DDDD.Plot
+ */
+
+DDDD.Scatterplot = function (data, options) {
+
+  DDDD.Plot.call( this, data, options );
+
+}
+
+DDDD.Scatterplot.prototype = Object.create( DDDD.Plot.prototype );
+
+DDDD.Scatterplot.prototype.loadData = function (data) {
+
+  //_ENGINE.clearScene();
+
+  var maxDataValue = Math.max.apply( Math, [].concat.apply( [], data ) );
+
+  for (var i = 0; i < data.length; i++) {
+      var material = new THREE.MeshPhongMaterial( { color: this.COLORS[i], shading: THREE.FlatShading, emissive: 0x555555, ambient: 0x333333, transparent: true, opacity: 0.9 } );
+      var text = new THREE.TextGeometry(
+          "Series " + i, 
+          { size: 16, height: 0.1, curveSegments: 6, font: "helvetiker", weight: "normal", style: "normal" } 
+      );
+      var textLabelMesh = new THREE.Mesh( text, material );
+      textLabelMesh.position.y += 20 + i * 30;
+      textLabelMesh.position.x -= 60;
+      textLabelMesh.rotation.z = Math.PI;
+      _ENGINE.addToScene( textLabelMesh );
+  }
+
+  for ( var i = 0; i < data.length; i++ ) {        
+      for ( var j = 0; j < data[i].length; j++ ) {
+
+          var mat = new THREE.MeshBasicMaterial( { color: this.COLORS[i], transparent: true, opacity: 0.85 } );
+          
+          var dot = new THREE.Mesh (
+              new THREE.SphereGeometry( 1.5, 32, 32 ), 
+              mat
+          );
+
+          dot.datum = { x: data[i][j][0], y: data[i][j][1], z: data[i][j][2] };
+
+          dot.position.x = data[i][j][0];
+          dot.position.y = data[i][j][1];
+          dot.position.z = data[i][j][2];
+
+          dot.tooltipMessage = "(" + dot.position.x.toFixed(3) + ", " + dot.position.y.toFixed(3) + ", " + dot.position.z.toFixed(3) + ")";
+
+          _ENGINE.addToPlot( dot );
+
+      }
+  }
+};
+
+DDDD.Scatterplot.prototype.drawLabels = function () {
+
+  var grid_material = new THREE.LineBasicMaterial( { color: 0xeeeeee, transparent: true, opacity: 0.2 } );
+  var gridLines = new THREE.Object3D();
+  var gridSize = 10;
+
+  for (var i = 0; i <= 150; i += gridSize) {
+
+      var line = new THREE.Geometry();
+      line.vertices.push( new THREE.Vector3( i, 0, 0 ) );
+      line.vertices.push( new THREE.Vector3( i, 150, 0 ) );
+      gridLines.add( new THREE.Line( line, grid_material ) );
+
+      line = new THREE.Geometry();
+      line.vertices.push( new THREE.Vector3( 0, i, 0 ) );
+      line.vertices.push( new THREE.Vector3( 150, i, 0 ) );
+      gridLines.add( new THREE.Line(line, grid_material ) );
+  
+  }
+
+  _ENGINE.addToScene( gridLines );
+
+};
+
 /**
 
 DDDD.prototype = {
 
-  PieChart = function ( data ) {
-    return null;
-  },
-
   TimeSeriesChart = function ( data ) {
-    return null;
-  },
-
-  ScatterPlot = function ( data ) {
     return null;
   },
 
