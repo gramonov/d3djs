@@ -15,10 +15,9 @@
   <script type="text/javascript" src="dddd.js"></script>
 
   <script>
-    var data = DDDD.generateData( 5 )
-    var points = DDDD.generatePoints( 10, 5 );
+    var data = DDDD.generateData( 3 )
+    var points = DDDD.generatePoints( 25, 4 );
     var tweets = DDDD.generateGeodata( 100 );
-    console.log(data);
-    var chart = new DDDD.GeoChart( tweets );
+    var chart = new DDDD.KNN( points );
   </script>
 </html>

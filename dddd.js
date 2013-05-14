@@ -888,11 +888,166 @@ DDDD.GeoChart.prototype._latLongToVector3 = function ( lat, lon, radius, heigth 
 
 DDDD.GeoChart.prototype.drawLabels = function () {
 
-  // no additional label helpers for pie chart
+  // no additional label helpers for geo chart
 
   return null;
 
 };
+
+/** 
+ *  KNN class.
+ *  Defines all the methods associated with construction and handling
+ *  of the k-nearest neighbors classifier.
+ *  @inherits DDDD.Plot
+ */
+
+DDDD.KNN = function (data, options) {
+
+  var options = typeof options !== "undefined" ? options : {};
+  this.neighborhoodSize = "neighborhoodSize"  in options ? options.neighborhoodSize : 10;
+  this.clusterNum = data.length;
+  this.size = data[0].length;
+  this.K = "K" in options ? options.K : 5;
+
+  DDDD.Plot.call( this, data, options );
+
+}
+
+DDDD.KNN.prototype = Object.create( DDDD.Plot.prototype );
+
+DDDD.KNN.prototype.loadData = function (data) {
+
+  //_ENGINE.clearScene();
+
+  var maxDataValue = Math.max.apply( Math, [].concat.apply( [], data ) );
+
+  for (var i = 0; i < data.length; i++) {
+      var material = new THREE.MeshPhongMaterial( { color: this.COLORS[i], shading: THREE.FlatShading, emissive: 0x555555, ambient: 0x333333, transparent: true, opacity: 0.9 } );
+      var text = new THREE.TextGeometry(
+          "Series " + i, 
+          { size: 16, height: 0.1, curveSegments: 6, font: "helvetiker", weight: "normal", style: "normal" } 
+      );
+      var textLabelMesh = new THREE.Mesh( text, material );
+      textLabelMesh.position.y += 20 + i * 30;
+      textLabelMesh.position.x -= 60;
+      textLabelMesh.rotation.z = Math.PI;
+      _ENGINE.addToScene( textLabelMesh );
+  }
+
+  for ( var i = 0; i < data.length; i++ ) {        
+      for ( var j = 0; j < data[i].length; j++ ) {
+
+          var mat = new THREE.MeshBasicMaterial( { color: this.COLORS[i], transparent: true, opacity: 0.85 } );
+          
+          var dot = new THREE.Mesh (
+              new THREE.SphereGeometry( 1.5, 32, 32 ), 
+              mat
+          );
+
+          dot.datum = { x: data[i][j][0], y: data[i][j][1], z: data[i][j][2] };
+
+          dot.position.x = data[i][j][0];
+          dot.position.y = data[i][j][1];
+          dot.position.z = data[i][j][2];
+
+          dot.tooltipMessage = "(" + dot.position.x.toFixed(3) + ", " + dot.position.y.toFixed(3) + ", " + dot.position.z.toFixed(3) + ")";
+
+          _ENGINE.addToPlot( dot );
+
+      }
+  }
+
+  for ( var i = 0; i < 150; i += this.neighborhoodSize ) {
+    for ( var j = 0; j < 150; j += this.neighborhoodSize ) {
+      for ( var k = 0; k < 150; k += this.neighborhoodSize ) {
+
+        dot = { x: i, y: j, z: k };
+        var color = this._classify(dot);
+        var mat = new THREE.MeshBasicMaterial( { color: this.COLORS[color], transparent: true, opacity: 0.1 } );
+        var cubeDim = this.neighborhoodSize * 0.75;
+        var region = new THREE.Mesh( new THREE.CubeGeometry( cubeDim, cubeDim, cubeDim ), mat );
+        region.position.x = i;
+        region.position.y = j;
+        region.position.z = k;
+        _ENGINE.addToScene( region );
+
+      }
+    }
+  }
+
+};
+
+DDDD.KNN.prototype.drawLabels = function () {
+
+  var grid_material = new THREE.LineBasicMaterial( { color: 0xeeeeee, transparent: true, opacity: 0.2 } );
+  var gridLines = new THREE.Object3D();
+  var gridSize = 10;
+
+  for (var i = 0; i <= 150; i += gridSize) {
+
+      var line = new THREE.Geometry();
+      line.vertices.push( new THREE.Vector3( i, 0, 0 ) );
+      line.vertices.push( new THREE.Vector3( i, 150, 0 ) );
+      gridLines.add( new THREE.Line( line, grid_material ) );
+
+      line = new THREE.Geometry();
+      line.vertices.push( new THREE.Vector3( 0, i, 0 ) );
+      line.vertices.push( new THREE.Vector3( 150, i, 0 ) );
+      gridLines.add( new THREE.Line(line, grid_material ) );
+  
+  }
+
+  _ENGINE.addToScene( gridLines );
+
+};
+
+DDDD.KNN.prototype._dist = function ( dot, train ) {
+
+    return Math.sqrt(
+        (dot.x - train[0])*(dot.x - train[0]) +
+        (dot.y - train[1])*(dot.y - train[1]) +
+        (dot.z - train[2])*(dot.z - train[2])
+    );
+
+}
+
+DDDD.KNN.prototype._classify = function ( dot ) {
+    
+    var distances = [];
+    
+    for ( var i = 0; i < this.size; i++ ) {
+      for ( var j = 0; j < this.clusterNum; j++ ) {
+
+        distances.push( { d: this._dist( dot, data[j][i] ), cl: j } );
+      
+      }
+    }
+
+    distances.sort( function ( a, b ) {
+
+        k1 = a.d; k2 = b.d;
+        return (k1 > k2) ? 1 : ( (k2 > k1) ? -1 : 0 );
+
+    });
+
+    counts = [];
+
+    for ( var i = 0; i < this.size; i++ ) {
+
+      counts.push( 0 );
+
+    }
+
+
+    for (var i = 0; i < this.K; i++) {
+
+        counts[ distances[i].cl ] += 1;
+    
+    }
+
+    return counts.indexOf( Math.max.apply( Math, counts ) );
+
+}
 
 /**
 
