@@ -15,60 +15,8 @@
   <script type="text/javascript" src="dddd.js"></script>
 
   <script>
-    var data = {
-      series: [
-          "Canada",
-          "Sweden",
-          "Mexico",
-      ],
-      columns: [
-          "2010",
-          "2011",
-          "2012",
-          "2013",
-      ],
-      values: [
-          [ 15, 20, 25, 30 ],
-          [ 20, 32, 68, 82 ],
-          [ 50, 15, 55, 72 ]
-      ]
-    };
-
-    var options = {
-
-    };
-
-    function generateData ( seriesSize, columnSize ) {
-
-      var data = { series: [], columns: [], values: [] };
-      var COLUMN_START = 2000;
-      var MAX_VALUE = 150;
-
-      for ( var i = 0; i < seriesSize; i++ ) {
-
-        data.series.push( "Series" + i ); 
-        data.values.push( [] );
-      
-      }
-
-      for ( var j = 0; j < columnSize; j++ ) {
-
-        data.columns.push( COLUMN_START + j );
-
-      }
-
-      for ( var i = 0; i < seriesSize; i++ ) {
-        for (var j = 0; j < columnSize; j++ ) {
-
-          data.values[i].push( Math.random() * MAX_VALUE );
-
-        }
-      }
-      console.log(data);
-      return data;
-
-    }
-
-    var chart = new DDDD.BarChart( generateData( 8, 8 ) );
+    var data = DDDD.generateData( 5 )
+    console.log(data);
+    var chart = new DDDD.PieChart( data );
   </script>
 </html>

@@ -1,32 +1,3 @@
-var COLORS = [
-    0xff0000,
-    0x00ff00,
-    0x0000ff,
-    0xffff00,
-    0xff00ff,
-    0x00ffff
-];
-
-var BASE_WIDTH = 3.0;
-var BASE_MULTIPLIER = 2.5;
-
-var AXES = {
-    X: {
-        len: 50
-    },
-    Y: {
-        len: 50
-    },
-    Z: {
-        len: 50
-    }
-};
-
-var OFFSET = {
-    X: 30,
-    Y: 10
-};
-
 /** 
  *  d3d.js is a library for creating 3d charts, machine learning,
  *  and graph analysis.
@@ -41,15 +12,50 @@ var OFFSET = {
 var DDDD = DDDD || { REVISION : '2'};
 
 /**
- *  Helper functions.
+ *  Static helper functions.
  */
 
-DDDD.prototype = {
+// data generator
 
-  createCanvas: function ( width, height ) {
-    // todo
-    return null;
+DDDD.generateData = function ( seriesSize, columnSize, columnStart, maxValue ) {
+
+  data = { series: [], columns: [], values: [] };
+
+  seriesSize = typeof seriesSize !== 'undefined' ? seriesSize : 10;
+  columnSize = typeof columnSize !== 'undefined' ? columnSize : 0;
+  columnStart = typeof columnStart !== 'undefined' ? columnStart : 2000;
+  maxValue = typeof maxValue !== 'undefined' ? maxValue : 150;
+
+  for ( var i = 0; i < seriesSize; i++ ) {
+
+    data.series.push( "Series" + i );
+    if ( columnSize != 0 ) data.values.push( [] );
+  
   }
+
+  for ( var j = 0; j < columnSize; j++ ) {
+
+    data.columns.push( columnStart + j );
+
+  }
+
+  if ( columnSize != 0 ) { 
+    for ( var i = 0; i < seriesSize; i++ ) {
+      for (var j = 0; j < columnSize; j++ ) {
+
+        data.values[i].push( Math.random() * maxValue );  
+
+      }
+    }
+  } else {
+    for ( var i = 0; i < seriesSize; i++ ) {
+    
+    data.values.push( Math.random() * maxValue );
+    
+    }
+  }
+
+  return data;
 
 };
 
@@ -324,12 +330,28 @@ DDDD.Plot = function ( data, options ) {
 
   _ENGINE.initScene();
 
+  this.BASE_WIDTH = 3.0;
+  this.BASE_MULTIPLIER = 2.5;
+
   this.SPACING = {
 
-    series: BASE_WIDTH * BASE_MULTIPLIER * 1.25,
-    columns: BASE_WIDTH * BASE_MULTIPLIER * 1.25
+    series: this.BASE_WIDTH * this.BASE_MULTIPLIER * 1.25,
+    
+    columns: this.BASE_WIDTH * this.BASE_MULTIPLIER * 1.25
   
   };
+
+  this.AXES = {
+
+    X: { len: 50 },
+    
+    Y: { len: 50 },
+    
+    Z: { len: 50 }
+  
+  };
+
+  this.OFFSET = { X: 30, Y: 10 };
 
   this.COLORS = this.createColorPalette( data.series.length )
 
@@ -368,7 +390,7 @@ DDDD.Plot.prototype = {
 
       var textLabelMesh = new THREE.Mesh( text, material );
       textLabelMesh.position.x += this.SPACING.series * (i + 1) + 2;
-      textLabelMesh.position.y -= OFFSET.X;
+      textLabelMesh.position.y -= this.OFFSET.X;
       textLabelMesh.rotation.x = 0 * Math.PI / 180;
       textLabelMesh.rotation.y = 0 * Math.PI / 180;
       textLabelMesh.rotation.z = 90 * Math.PI / 180;
@@ -393,7 +415,7 @@ DDDD.Plot.prototype = {
 
       var textLabelMesh = new THREE.Mesh( text, material );
       textLabelMesh.position.y += this.SPACING.columns * (i + 1) + 2;
-      textLabelMesh.position.x -= OFFSET.Y;
+      textLabelMesh.position.x -= this.OFFSET.Y;
       textLabelMesh.rotation.x = 0 * Math.PI / 180;
       textLabelMesh.rotation.y = 0 * Math.PI / 180;
       textLabelMesh.rotation.z = 180 * Math.PI / 180;
@@ -422,7 +444,7 @@ DDDD.Plot.prototype = {
 
     for ( var i = 0; i < size; i++ ) {
 
-      colors.push( Math.random()*0xFFFFFF<<0 );
+      colors.push( Math.random() * 0xFFFFFF << 0 );
     
     }
 
@@ -460,22 +482,22 @@ DDDD.BarChart.prototype.loadData = function (data) {
       var bar_foundation_material = new THREE.MeshBasicMaterial( { color: this.COLORS[i], shading: THREE.FlatShading, transparent: true, opacity: 0.5, wireframe: false } );
       var bar_wireframe_material = new THREE.MeshBasicMaterial( { color: 0xffffff, shading: THREE.FlatShading, wireframe: true, transparent: true } );
 
-      var val = data.values[i][j] * AXES.Z.len / maxDataValue;
+      var val = data.values[i][j] * this.AXES.Z.len / maxDataValue;
 
       var bar_solid = new THREE.Mesh ( 
-          new THREE.CubeGeometry( BASE_WIDTH, BASE_WIDTH, val ), 
+          new THREE.CubeGeometry( this.BASE_WIDTH, this.BASE_WIDTH, val ), 
           bar_solid_material
       );
 
       bar_solid.datum = { series: i, column: j };
 
       var bar_wireframe = new THREE.Mesh (
-          new THREE.CubeGeometry( BASE_WIDTH, BASE_WIDTH, val ), 
+          new THREE.CubeGeometry( this.BASE_WIDTH, this.BASE_WIDTH, val ), 
           bar_wireframe_material
       );
 
       var bar_foundation = new THREE.Mesh (
-          new THREE.CubeGeometry( BASE_WIDTH * BASE_MULTIPLIER, BASE_WIDTH * BASE_MULTIPLIER, -0.5 ),
+          new THREE.CubeGeometry( this.BASE_WIDTH * this.BASE_MULTIPLIER, this.BASE_WIDTH * this.BASE_MULTIPLIER, -0.5 ),
           bar_foundation_material
       );
       
@@ -500,12 +522,113 @@ DDDD.BarChart.prototype.loadData = function (data) {
   
 };
 
+/** 
+ *  Pie chart class.
+ *  Defines all the methods associated with construction and handling
+ *  of the pie charts.
+ *  @inherits DDDD.Plot
+ */
+
+DDDD.PieChart = function (data, options) {
+
+  this.piePieces = [];
+  this.piece = 0;
+
+  DDDD.Plot.call( this, data, options );
+
+}
+
+DDDD.PieChart.prototype = Object.create( DDDD.Plot.prototype );
+
+// private methods
+
+DDDD.PieChart.prototype._pieSegment = function ( start, end, thickness, value, color ) {
+
+    var material = new THREE.MeshPhongMaterial( { ambient: 0x808080, color: color, emissive: 0x000000 } );
+
+    var geometry = new THREE.Shape();
+    geometry.moveTo(0, 0);
+    geometry.arc(0, 0, 40, start, end, false);
+    geometry.lineTo(0, 0);
+
+    this.piePieces[this.piece].geo = geometry.extrude( { amount: thickness, bevelEnabled: false, curveSegments: 50, steps: 2 } );
+    this.piePieces[this.piece].geo.dynamic = true
+    this.piePieces[this.piece].baseColor = material.color.getHex();
+    this.piePieces[this.piece].value = value;
+
+    var segment = new THREE.Mesh( this.piePieces[this.piece].geo, material );
+    segment.name = this.piePieces[this.piece].name = this.piece;
+    
+    this.piePieces[this.piece].geo.verticesNeedUpdate = true;
+    this.piePieces[this.piece].geo.normalsNeedUpdate = true;
+    this.piePieces[this.piece].geo.computeFaceNormals();
+    this.piePieces[this.piece].geo.computeBoundingSphere();
+
+    segment.datum = { idx: this.piece };
+    var val = Math.floor(data.values[this.piece] * 100) / 100;
+    segment.tooltipMessage = "Value : " + val + " | " + ( Math.floor(val / this.sum) * 100 ) / 100 + "%";
+
+    return segment;
+
+};
+
+DDDD.PieChart.prototype._pieGraph = function ( scene, values, thickness ) {
+
+    this.sum = 0;
+    
+    for (var i = 0; i < values.length; i++) {
+        
+        this.sum += values[i];
+
+        var material = new THREE.MeshPhongMaterial( { color: this.COLORS[i], shading: THREE.FlatShading, emissive: 0x555555, ambient: 0x333333, transparent: true, opacity: 0.9 } );
+        var text = new THREE.TextGeometry(
+            data.series[i] + ": " + Math.floor(data.values[i] * 100) / 100, 
+            { size: 20, height: 0.1, curveSegments: 6, font: "helvetiker", weight: "normal", style: "normal" } 
+        );
+        var textLabelMesh = new THREE.Mesh( text, material );
+        textLabelMesh.position.y += 20 + i * 30;
+        textLabelMesh.position.x -= 60;
+        textLabelMesh.rotation.z = Math.PI;
+        _ENGINE.addToScene( textLabelMesh );
+
+    }
+
+    var cur = 0;
+    
+    for (var i = 0; i < values.length; i++) {
+
+        var end = ((2*Math.PI) * values[i]) / this.sum;
+        this.piePieces[this.piece] = [];
+        _ENGINE.addToPlot( this._pieSegment( cur, cur + end, thickness, values[i], this.COLORS[i] ) );
+        cur += end;
+        this.piece++;
+
+    }
+
+    return this._pieGraph;
+
+};
+
+DDDD.PieChart.prototype.loadData = function (data) {
+
+  //_ENGINE.clearScene();
+
+  this._pieGraph( this.plot, this.data.values, 20 )
+  _ENGINE.addToScene( this.plot );
+  
+};
+
+DDDD.PieChart.prototype.drawLabels = function () {
+
+  // no additional label helpers for pie chart
+
+  return null;
+
+};
+
 /**
 
 DDDD.prototype = {
-  BarChart = function ( data ) {
-    return null;
-  },
 
   PieChart = function ( data ) {
     return null;

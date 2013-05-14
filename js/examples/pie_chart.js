@@ -73,6 +73,7 @@ function pieGraph(scene, values, thickness) {
     var sum = 0;
     
     for (var i = 0; i < values.length; i++) {
+        
         sum += values[i];
 
         var material = new THREE.MeshPhongMaterial( { color: COLORS[i], shading: THREE.FlatShading, emissive: 0x555555, ambient: 0x333333, transparent: true, opacity: 0.9 } );
@@ -85,16 +86,19 @@ function pieGraph(scene, values, thickness) {
         textLabelMesh.position.x -= 60;
         textLabelMesh.rotation.z = Math.PI;
         scene.add(textLabelMesh);
+
     }
 
     var cur = 0;
     
     for (var i = 0; i < values.length; i++) {
+
         var end = ((2*Math.PI) * values[i]) / sum;
         piePieces[piece] = [];
         scene.add( pieSegment( cur, cur + end, thickness, values[i], COLORS[i] ) );
         cur += end;
         piece++;
+
     }
 
     return pieGraph;
@@ -106,148 +110,7 @@ function loadData() {
     scene.add(plot);
 }
 
-
-function drawGrid(gridSize) {
-    var grid_material = new THREE.LineBasicMaterial( { color: 0xeeeeee, transparent: true, opacity: 0.2 } );
-    var gridLines = new THREE.Object3D();   
-
-    for (var i = 0; i <= 75; i += gridSize) {
-
-        var line = new THREE.Geometry();
-        line.vertices.push(new THREE.Vector3(i, 0, 0));
-        line.vertices.push(new THREE.Vector3(i, 75, 0));
-        gridLines.add(new THREE.Line(line, grid_material));
-
-        line = new THREE.Geometry();
-        line.vertices.push(new THREE.Vector3(0, i, 0));
-        line.vertices.push(new THREE.Vector3(75, i, 0));
-        gridLines.add(new THREE.Line(line, grid_material));
-/**
-        line = new THREE.Geometry();
-        line.vertices.push(new THREE.Vector3(0, 0, i));
-        line.vertices.push(new THREE.Vector3(0, 100, i));
-        gridLines.add(new THREE.Line(line, grid_material));
-
-        line = new THREE.Geometry();
-        line.vertices.push(new THREE.Vector3(0, i, 0));
-        line.vertices.push(new THREE.Vector3(0, i, 100));
-        gridLines.add(new THREE.Line(line, grid_material));
-
-        line = new THREE.Geometry();
-        line.vertices.push(new THREE.Vector3(i, 0, 0));
-        line.vertices.push(new THREE.Vector3(i, 0, 100));
-        gridLines.add(new THREE.Line(line, grid_material));
-
-        line = new THREE.Geometry();
-        line.vertices.push(new THREE.Vector3(0, 0, i));
-        line.vertices.push(new THREE.Vector3(100, 0, i));
-        gridLines.add(new THREE.Line(line, grid_material));
-*/
-        gridLines.add(new THREE.Line(line, grid_material));
-    }
-
-    group.add(gridLines);
-}
-
-
-function init() {
-    container = document.createElement( 'div' );
-    document.body.appendChild( container );
-
-    scene = new THREE.Scene();
-
-    camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
-    
-    camera.up = new THREE.Vector3( 0, 0, 1 );
-    camera.position.set( 150, 150, 200 );
-
-    controls = new THREE.TrackballControls( camera );
-    
-    controls.rotateSpeed = 1.5;
-    controls.zoomSpeed = 0.4;
-    controls.panSpeed = 1.0;
-
-    controls.noZoom = false;
-    controls.noPan = false;
-
-    controls.staticMoving = true;
-    controls.dynamicDampingFactor = 0.3;
-
-    controls.keys = [ 65, 83, 68 ];
-
-    controls.addEventListener( 'change', render );
-
-    group = new THREE.Object3D();
-    
-    var x_axis = new THREE.Geometry();
-    x_axis.vertices.push(new THREE.Vector3(0, 0, 0));
-    x_axis.vertices.push(new THREE.Vector3(100, 0, 0));
-
-    var y_axis = new THREE.Geometry();
-    y_axis.vertices.push(new THREE.Vector3(0, 0, 0));
-    y_axis.vertices.push(new THREE.Vector3(0, 100, 0));
-
-    var z_axis = new THREE.Geometry();
-    z_axis.vertices.push(new THREE.Vector3(0, 0, 0));
-    z_axis.vertices.push(new THREE.Vector3(0, 0, 100));
-
-    var white_line_material = new THREE.LineBasicMaterial( { color: 0xffffff } );
-
-    //group.add(new THREE.Line(x_axis, white_line_material));
-    //group.add(new THREE.Line(y_axis, white_line_material));
-    //group.add(new THREE.Line(z_axis, white_line_material));
-
-    //group.rotation.x = -90 * Math.PI / 180;
-    //group.rotation.y = 0 * Math.PI / 180;
-    //group.rotation.z = 180 * Math.PI / 180;
-
-    //drawGrid(100);
-    loadData();
-    scene.add(group);
-
-    renderer = new THREE.WebGLRenderer( { antialias: true } );
-    renderer.setSize( window.innerWidth, window.innerHeight );
-    renderer.setClearColor( 0x000000, 1 );
-    renderer.shadowMapEnabled = true;
-    renderer.shadowMapSoft = true;
-    renderer.shadowMapWidth = 1024;
-    renderer.shadowMapHeight = 1024;
-    renderer.shadowCameraFov = 35;
-    
-    light = new THREE.SpotLight();
-    light.castShadow = true;
-    light.position.set(170, 300, 100);
-    scene.add(light);
-
-    ambientLight = new THREE.PointLight(0x123456);
-    ambientLight.position.set(20, 150, 120);
-    scene.add(ambientLight);
-
-    document.body.appendChild( renderer.domElement ); 
-
-    window.addEventListener( 'resize', onWindowResize, false );
-
-    projector = new THREE.Projector();
-    raycaster = new THREE.Raycaster();
-    
-    document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-    console.log(plot);
-
-    tooltip_canvas = document.createElement('canvas');
-    tooltip_context = tooltip_canvas.getContext('2d');
-    tooltip_context.font = "Bold 13px Arial";
-    tooltip_context.fillStyle = "rgba(0,0,0,0.95)";
-    
-    // canvas contents will be used for a texture
-    tooltip_texture = new THREE.Texture(tooltip_canvas) 
-    tooltip_texture.needsUpdate = true;
-    
-    var spriteMaterial = new THREE.SpriteMaterial( { map: tooltip_texture, useScreenCoordinates: true, alignment: THREE.SpriteAlignment.topLeft } );
-    
-    tooltip_sprite = new THREE.Sprite( spriteMaterial );
-    tooltip_sprite.scale.set( 300, 150, 1.0 );
-    tooltip_sprite.position.set( 50, 50, 0 );
-    scene.add( tooltip_sprite );   
+ne.add( tooltip_sprite );   
 }
 
 function render() {
