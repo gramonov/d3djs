@@ -511,7 +511,6 @@ DDDD.Plot.prototype = {
   createColorPalette: function ( data ) {
 
     var colors = [];
-    console.log('series' in data);
 
     var size = 'series' in data ? data.series.length : data.length; 
 
@@ -1049,29 +1048,111 @@ DDDD.KNN.prototype._classify = function ( dot ) {
 
 }
 
-/**
 
-DDDD.prototype = {
 
-  TimeSeriesChart = function ( data ) {
-    return null;
-  },
+/** 
+ *  Function plotter class.
+ *  Defines all the methods associated with construction and handling
+ *  of the function plots.
+ *  @inherits DDDD.Plot
+ */
 
-  GeoChart = function ( data ) {
-    return null;
-  },
+DDDD.FunctionPlotter = function (data, options) {
 
-  KNN = function ( data ) {
-    return null;
-  },
+  this.func = data.func;
+  DDDD.Plot.call( this, data, options );
 
-  Network = function ( data ) {
-    return null;
-  },
-
-  FunctionPlotter = function ( data ) {
-    return null;
-  }
 }
-*/
 
+DDDD.FunctionPlotter.prototype = Object.create( DDDD.Plot.prototype );
+
+DDDD.FunctionPlotter.prototype.loadData = function (data) {
+
+  this._createGraph ()
+  
+};
+
+DDDD.FunctionPlotter.prototype._createGraph = function () {
+
+  _ENGINE.addToScene( new THREE.AxisHelper() );
+
+  var wireTexture = new THREE.ImageUtils.loadTexture( 'images/square.png' );
+  wireTexture.wrapS = wireTexture.wrapT = THREE.RepeatWrapping; 
+  wireTexture.repeat.set( 40, 40 );
+  var wireMaterial = new THREE.MeshBasicMaterial( { map: wireTexture, vertexColors: THREE.VertexColors, side:THREE.DoubleSide } );
+
+  var vertexColorMaterial  = new THREE.MeshBasicMaterial( { vertexColors: THREE.VertexColors } );
+
+  var segments = 20, 
+      xMin = -10, xMax = 10, xRange = xMax - xMin,
+      yMin = -10, yMax = 10, yRange = yMax - yMin,
+      zMin = -10, zMax = 10, zRange = zMax - zMin;
+
+  xRange = xMax - xMin;
+  yRange = yMax - yMin;
+  zFunc = Parser.parse( this.func ).toJSFunction( ['x','y'] );
+  
+  var meshFunction = function ( x, y ) {
+      
+      x = xRange * x + xMin;
+      y = yRange * y + yMin;
+      var z = zFunc( x, y );
+      if ( isNaN(z) ) {
+
+        return new THREE.Vector3( 0, 0, 0 );
+      
+      } else {
+      
+        return new THREE.Vector3( x, y, z );
+      
+      }
+  };
+  
+  graphGeometry = new THREE.ParametricGeometry( meshFunction, segments, segments, true );
+  graphGeometry.computeBoundingBox();
+  
+  zMin = graphGeometry.boundingBox.min.z;
+  zMax = graphGeometry.boundingBox.max.z;
+  zRange = zMax - zMin;
+  var color, point, face, numberOfSides, vertexIndex;
+  
+  var faceIndices = [ 'a', 'b', 'c', 'd' ];
+  
+  for ( var i = 0; i < graphGeometry.vertices.length; i++ ) {
+      
+    point = graphGeometry.vertices[ i ];
+    color = new THREE.Color( 0x0000ff );
+    color.setHSL( 0.7 * (zMax - point.z) / zRange, 1, 0.5 );
+    graphGeometry.colors[i] = color; // use this array for convenience
+
+  }
+  
+  for ( var i = 0; i < graphGeometry.faces.length; i++ ) {
+  
+    face = graphGeometry.faces[ i ];
+    numberOfSides = ( face instanceof THREE.Face3 ) ? 3 : 4;
+    
+    for ( var j = 0; j < numberOfSides; j++ ) {
+
+        vertexIndex = face[ faceIndices[ j ] ];
+        face.vertexColors[ j ] = graphGeometry.colors[ vertexIndex ];
+    
+    }
+  
+  }
+  
+  wireMaterial.map.repeat.set( segments, segments );
+  
+  graphMesh = new THREE.Mesh( graphGeometry, wireMaterial );
+  graphMesh.doubleSided = true;
+  graphMesh.tooltipMessage = "F(x, y) = " + this.func;
+  _ENGINE.addToPlot( graphMesh );
+};
+
+DDDD.FunctionPlotter.prototype.drawLabels = function () {
+
+  // no additional label helpers for geo chart
+
+  return null;
+
+};

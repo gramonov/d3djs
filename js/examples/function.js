@@ -61,16 +61,10 @@ var OFFSET = {
     Y: 10
 };
 
-var zFuncText = "c * (x^2 / a^2 - y^2 / b^2)";
+var zFuncText = "c * (x^2 / 2.0^2 - y^2 / (-3.0)^2)";
 var zFunc = Parser.parse(zFuncText).toJSFunction( ['x','y'] );
 
-var a = -2.0, b = -3.0, c = -1.0, d = 1;
 
-var meshFunction;
-var segments = 20, 
-    xMin = -10, xMax = 10, xRange = xMax - xMin,
-    yMin = -10, yMax = 10, yRange = yMax - yMin,
-    zMin = -10, zMax = 10, zRange = zMax - zMin;
     
 var graphGeometry;
 var gridMaterial, wireMaterial, vertexColorMaterial;
