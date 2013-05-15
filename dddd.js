@@ -129,6 +129,38 @@ DDDD.generateGeodata = function ( size ) {
 
 }
 
+// generate network data
+
+DDDD.generateGraphdata = function ( numOfNodes, numOfLinks, numOfGroups ) {
+
+  numOfNodes = typeof numOfNodes !== 'undefined' ? numOfNodes : 30;
+  numOfLinks = typeof numOfLinks !== 'undefined' ? numOfLinks : 100;
+  numOfGroups = typeof numOfGroups !== 'undefined' ? numOfGroups : 10;
+
+  var data = {
+
+    nodes: [],
+
+    links: []
+
+  };
+
+  for ( var i = 0; i < numOfNodes; i++ ) {
+
+    data.nodes.push( { name: "Node" + i, group: Math.floor(Math.random() * numOfGroups + 1) } );
+
+  }
+
+  for ( var j = 0; i < numOfLinks; i++ ) {
+
+    data.links.push( { source: Math.floor(Math.random() * numOfNodes), target: Math.floor(Math.random() * numOfNodes), value: Math.floor(Math.random() * 10 + 1) } );
+
+  }
+
+  return data;
+
+}
+
 /**
  *  three.js custom helper methods.
  */
@@ -1150,6 +1182,124 @@ DDDD.FunctionPlotter.prototype._createGraph = function () {
 };
 
 DDDD.FunctionPlotter.prototype.drawLabels = function () {
+
+  // no additional label helpers for geo chart
+
+  return null;
+
+};
+
+/** 
+ *  Network class.
+ *  Defines all the methods associated with construction and handling
+ *  of the networks.
+ *  @inherits DDDD.Plot
+ */
+
+DDDD.Network = function ( data, options  ) {
+
+  DDDD.Plot.call( this, data, options );
+
+}
+
+DDDD.Network.prototype = Object.create( DDDD.Plot.prototype );
+
+DDDD.Network.prototype.loadData = function (data) {
+
+  var plot = new THREE.Object3D();
+  var plot2 = new THREE.Object3D();
+
+  for (var i = 0; i < data.nodes.length; i++) {
+    var material = new THREE.MeshBasicMaterial( { color: 0xeeeeee, shading: THREE.FlatShading, transparent: true, opacity: 0.9 } );
+    var text = new THREE.TextGeometry(
+        data.nodes[i].name, 
+        { size: 5, height: 0.1, curveSegments: 6, font: "helvetiker", weight: "normal", style: "normal" } 
+    );
+    var textLabelMesh = new THREE.Mesh( text, material );
+    textLabelMesh.position.x += this.SPACING.series * (i + 1);
+    textLabelMesh.position.y -= this.OFFSET.X;
+    textLabelMesh.rotation.x = 0 * Math.PI / 180;
+    textLabelMesh.rotation.y = 0 * Math.PI / 180;
+    textLabelMesh.rotation.z = 90 * Math.PI / 180;
+
+    _ENGINE.addToScene( textLabelMesh );
+  }
+
+  for (var i = 0; i < data.nodes.length; i++) {
+    var material = new THREE.MeshBasicMaterial( { color: 0xeeeeee, shading: THREE.FlatShading, transparent: true, opacity: 0.9 } );
+    var text = new THREE.TextGeometry(
+        data.nodes[i].name, 
+        { size: 5, height: 0.1, curveSegments: 6, font: "helvetiker", weight: "normal", style: "normal" } 
+    );
+    var textLabelMesh = new THREE.Mesh( text, material );
+    textLabelMesh.position.y += this.SPACING.columns * (i + 1);
+    textLabelMesh.position.x -= this.OFFSET.Y;
+    textLabelMesh.rotation.x = 0 * Math.PI / 180;
+    textLabelMesh.rotation.y = 0 * Math.PI / 180;
+    textLabelMesh.rotation.z = 180 * Math.PI / 180;
+    
+    _ENGINE.addToScene( textLabelMesh );
+  }
+
+  var counts = {};
+
+  for (var i = 0; i < data.links.length; i++) {
+
+    code = "s" + data.links[i].source + "t" + data.links[i].target;
+
+    if (!(code in counts)) {
+
+        counts[code] = { val: data.links[i].value, source: data.links[i].source, target: data.links[i].target };
+
+    } else {
+        console.log(counts[code]);
+        counts[code].val += data.links[i].value;
+
+    }
+
+  }
+
+  for (code in counts) {
+
+    var color = new THREE.Color( 0x000000 );
+    color.setRGB( 0.2 * counts[code].val , 0.2 * counts[code].val, 0 );
+
+    var bar_solid_material = new THREE.MeshPhongMaterial( { color: color, transparent: true, opacity: 0.85, emissive: color } );
+    var bar_wireframe_material = new THREE.MeshBasicMaterial( { color: 0xffffff, shading: THREE.FlatShading, wireframe: true, transparent: true } );
+
+    var bar_solid = new THREE.Mesh ( 
+        new THREE.CubeGeometry( 10, 10, 1.0 ), 
+        bar_solid_material
+    );
+
+    bar_solid.datum = { val: counts[code].val, source: counts[code].source, target: counts[code].target };
+
+    var bar_wireframe = new THREE.Mesh (
+        new THREE.CubeGeometry( 10, 10, 2.0 ), 
+        bar_wireframe_material
+    );
+    
+    console.log(counts[code].source);
+    bar_solid.position.x = -1 + this.SPACING.series * (counts[code].source);
+    bar_solid.position.y = 10 + this.SPACING.columns * (counts[code].target);
+    bar_solid.position.z = 0;
+
+    bar_wireframe.position.x = -1 + this.SPACING.series * (counts[code].source);
+    bar_wireframe.position.y = 10 + this.SPACING.columns * (counts[code].target);
+    bar_wireframe.position.z = 0;
+    
+    bar_solid.tooltipMessage = "Source: " + data.nodes[counts[code].source].name + " " +
+      "Target: " + data.nodes[counts[code].target].name + " " +
+      "Coocurence : " + counts[code].val;
+
+    _ENGINE.addToPlot( bar_solid );
+    _ENGINE.addToScene( bar_wireframe );
+
+  }
+  
+};
+
+DDDD.Network.prototype.drawLabels = function () {
 
   // no additional label helpers for geo chart
 
